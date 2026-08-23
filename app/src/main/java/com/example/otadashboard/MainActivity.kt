@@ -7,18 +7,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.example.otadashboard.ota_updater.ApkDownloader
 import com.example.otadashboard.ota_updater.OtaChecker
+import com.example.otadashboard.ota_updater.UpdateInfo
 import com.example.otadashboard.security.AppDatabase
 import com.example.otadashboard.security.ScanLogDao
 import com.example.otadashboard.security.ScanLogEntity
@@ -53,7 +57,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Room Veritabanı Başlatılıyor
         val db = AppDatabase.getDatabase(applicationContext)
         val logDao = db.scanLogDao()
 
@@ -85,14 +88,11 @@ fun MainScreen(
     lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    var statusText by remember { mutableStateOf("Sistem Hazır") }
     var isBusy by remember { mutableStateOf(false) }
 
-    // Room Veritabanındaki Logları Canlı Dinleme
     val logs by logDao.getAllLogs().collectAsState(initial = emptyList())
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Tab Bar
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
                 selected = selectedTab == 0,
@@ -106,7 +106,6 @@ fun MainScreen(
             )
         }
 
-        // Tab Content
         when (selectedTab) {
             0 -> VirusScanScreen(
                 context = context,
@@ -116,12 +115,8 @@ fun MainScreen(
                 onScanStart = {
                     isBusy = true
                     lifecycleScope.launch(Dispatchers.IO) {
-                        // 1. Sistem Güvenlik Taraması
                         SecurityChecker.scanDeviceAndLog(context, logDao)
-                        
-                        // 2. ClamAV Motor Simülasyon Taraması
                         runClamAvScan(logDao)
-                        
                         withContext(Dispatchers.Main) {
                             isBusy = false
                         }
@@ -135,20 +130,15 @@ fun MainScreen(
             )
             1 -> UpdateScreen(
                 context = context,
-                status = statusText,
-                isBusy = isBusy,
                 updateJsonUrl = updateJsonUrl,
                 publicKeyPem = publicKeyPem,
                 logDao = logDao,
-                onStatusChange = { statusText = it },
-                onBusyChange = { isBusy = it },
                 lifecycleScope = lifecycleScope
             )
         }
     }
 }
 
-// ClamAV Daemon Soket / Engine Simülasyonu
 private suspend fun runClamAvScan(logDao: ScanLogDao) {
     logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV v1.2.0 Engine başlatılıyor..."))
     delay(500)
@@ -205,15 +195,14 @@ fun VirusScanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Canlı Terminal Log Paneli
         Text(
             text = "Canlı Terminal Logları (Room DB Persisted)",
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.align(Alignment.Start)
         )
-        
+
         Surface(
-            color = Color(0xFF1E1E1E), // Koyu Terminal Arka Planı
+            color = Color(0xFF1E1E1E),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -231,10 +220,10 @@ fun VirusScanScreen(
                 ) {
                     items(logs) { log ->
                         val logColor = when (log.level) {
-                            "CRITICAL" -> Color(0xFFFF5252) // Kırmızı
-                            "WARN" -> Color(0xFFFFD700)     // Sarı
-                            "ERROR" -> Color(0xFFFF4081)    // Pembe/Mor
-                            else -> Color(0xFF00E676)       // Parlak Yeşil
+                            "CRITICAL" -> Color(0xFFFF5252)
+                            "WARN" -> Color(0xFFFFD700)
+                            "ERROR" -> Color(0xFFFF4081)
+                            else -> Color(0xFF00E676)
                         }
 
                         Text(
@@ -253,85 +242,237 @@ fun VirusScanScreen(
 @Composable
 fun UpdateScreen(
     context: android.content.Context,
-    status: String,
-    isBusy: Boolean,
     updateJsonUrl: String,
     publicKeyPem: String,
     logDao: ScanLogDao,
-    onStatusChange: (String) -> Unit,
-    onBusyChange: (Boolean) -> Unit,
     lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
 ) {
+    var statusText by remember { mutableStateOf("Kontrol ediliyor...") }
+    var isChecking by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var progressPercent by remember { mutableStateOf(0) }
+    var progressDetail by remember { mutableStateOf("") }
+    var updateInfoState by remember { mutableStateOf<UpdateInfo?>(null) }
+
+    // Otomatik Kontrol (Auto-Check)
+    LaunchedEffect(Unit) {
+        checkUpdateInternal(
+            context = context,
+            updateJsonUrl = updateJsonUrl,
+            logDao = logDao,
+            lifecycleScope = lifecycleScope,
+            onStart = {
+                isChecking = true
+                statusText = "Sürüm denetleniyor..."
+            },
+            onResult = { info, status ->
+                isChecking = false
+                updateInfoState = info
+                statusText = status
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        Text(text = "OTA Güncelleme", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "OTA Güncelleme Merkezi", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Durum: $status", style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = {
-                onBusyChange(true)
-                onStatusChange("Denetleniyor...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "OTA güncelleme kontrolü başlatıldı."))
-                    
-                    val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
-                    withContext(Dispatchers.Main) {
-                        when {
-                            updateInfo == null -> {
-                                onStatusChange("Hata: Sunucuya ulaşılamadı")
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucuya ulaşılamadı."))
-                                }
-                                onBusyChange(false)
-                            }
-                            !updateInfo.hasUpdate -> {
-                                onStatusChange("Cihazınız güncel.")
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Cihaz güncel, yeni sürüm yok."))
-                                }
-                                onBusyChange(false)
-                            }
-                            else -> {
-                                onStatusChange("Güncelleme bulundu, indiriliyor...")
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm bulundu! APK İndiriliyor..."))
-                                }
-                                ApkDownloader.downloadAndVerifyApk(
-                                    context = context,
-                                    apkUrl = updateInfo.apkUrl,
-                                    expectedSignatureBase64 = updateInfo.signature,
-                                    publicKeyPem = publicKeyPem,
-                                    onResult = { success, message ->
-                                        onStatusChange(message)
-                                        lifecycleScope.launch(Dispatchers.IO) {
-                                            val level = if (success) "INFO" else "CRITICAL"
-                                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = level, message = "OTA İndirme Sonucu: $message"))
-                                        }
-                                        onBusyChange(false)
-                                    }
-                                )
-                            }
+        // Durum Metni Kartı
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Sistem Durumu", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = statusText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Güncelleme Detay Kartı (Yenilikler / Changelog)
+        updateInfoState?.let { info ->
+            if (info.hasUpdate) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Yeni Sürüm Mevcut! (v${info.versionCode})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Boyut: ${info.fileSizeFormatted}", fontSize = 12.sp, color = Color.DarkGray)
+                            Text(text = "Yayın Tarihi: ${info.publishedAt}", fontSize = 12.sp, color = Color.DarkGray)
                         }
+                        Divider(modifier = Modifier.padding(vertical = 10.dp))
+                        Text(
+                            text = "Yenilikler & Değişiklikler:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = info.changelog,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        // İndirme Progress Bar
+        if (isDownloading) {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                LinearProgressIndicator(
+                    progress = progressPercent / 100f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "%$progressPercent", fontWeight = FontWeight.Bold)
+                    Text(text = progressDetail, fontSize = 12.sp, color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        // Aksiyon Butonları
+        if (updateInfoState?.hasUpdate == true) {
+            Button(
+                onClick = {
+                    val info = updateInfoState ?: return@Button
+                    isDownloading = true
+                    statusText = "APK İndiriliyor..."
+
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        logDao.insertLog(
+                            ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indirmesi başlatıldı: ${info.apkUrl}")
+                        )
+                    }
+
+                    ApkDownloader.downloadAndVerifyApk(
+                        context = context,
+                        apkUrl = info.apkUrl,
+                        expectedSignatureBase64 = info.signature,
+                        publicKeyPem = publicKeyPem,
+                        maxRetries = 3,
+                        onProgress = { percent, downloaded, total ->
+                            progressPercent = percent
+                            val downloadedMb = String.format("%.2f", downloaded / (1024.0 * 1024.0))
+                            val totalMb = String.format("%.2f", total / (1024.0 * 1024.0))
+                            progressDetail = "$downloadedMb MB / $totalMb MB"
+                        },
+                        onResult = { success, message ->
+                            isDownloading = false
+                            statusText = message
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val level = if (success) "INFO" else "CRITICAL"
+                                logDao.insertLog(ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonuç: $message"))
+                            }
+                        }
+                    )
+                },
+                enabled = !isDownloading && !isChecking,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isDownloading) {
+                    Text("İndiriliyor...")
+                } else {
+                    Text("Güncellemeyi İndir ve Yükle")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        OutlinedButton(
+            onClick = {
+                checkUpdateInternal(
+                    context = context,
+                    updateJsonUrl = updateJsonUrl,
+                    logDao = logDao,
+                    lifecycleScope = lifecycleScope,
+                    onStart = {
+                        isChecking = true
+                        statusText = "Yeniden denetleniyor..."
+                    },
+                    onResult = { info, status ->
+                        isChecking = false
+                        updateInfoState = info
+                        statusText = status
+                    }
+                )
             },
-            enabled = !isBusy,
+            enabled = !isChecking && !isDownloading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (isBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+            if (isChecking) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Text("Güncellemeleri Denetle")
+                Text("Güncellemeleri Yeniden Denetle")
+            }
+        }
+    }
+}
+
+private fun checkUpdateInternal(
+    context: android.content.Context,
+    updateJsonUrl: String,
+    logDao: ScanLogDao,
+    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope,
+    onStart: () -> Unit,
+    onResult: (UpdateInfo?, String) -> Unit
+) {
+    onStart()
+    lifecycleScope.launch(Dispatchers.IO) {
+        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Güncelleme denetimi başlatıldı."))
+        val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
+
+        withContext(Dispatchers.Main) {
+            when {
+                updateInfo == null -> {
+                    onResult(null, "Hata: Sunucuya veya GitHub API'ye ulaşılamadı.")
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucu yanıt vermedi."))
+                    }
+                }
+                !updateInfo.hasUpdate -> {
+                    onResult(updateInfo, "Cihazınız güncel. (Sürüm: v${updateInfo.currentVersionCode})")
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Sürüm v${updateInfo.currentVersionCode} güncel."))
+                    }
+                }
+                else -> {
+                    onResult(updateInfo, "Yeni güncelleme mevcut! (v${updateInfo.versionCode})")
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        logDao.insertLog(
+                            ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm tespit edildi: v${updateInfo.versionCode}")
+                        )
+                    }
+                }
             }
         }
     }

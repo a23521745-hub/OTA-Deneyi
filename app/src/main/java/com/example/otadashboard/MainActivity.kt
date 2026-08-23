@@ -3,7 +3,6 @@ package com.example.otadashboard
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,11 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
 import com.example.otadashboard.ota_updater.ApkDownloader
 import com.example.otadashboard.ota_updater.OtaChecker
 import com.example.otadashboard.ota_updater.UpdateInfo
@@ -67,11 +66,9 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(
-                        context = this@MainActivity,
                         updateJsonUrl = updateJsonUrl,
                         publicKeyPem = publicKeyPem,
-                        logDao = logDao,
-                        lifecycleScope = lifecycleScope
+                        logDao = logDao
                     )
                 }
             }
@@ -81,13 +78,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
-    context: android.content.Context,
     updateJsonUrl: String,
     publicKeyPem: String,
-    logDao: ScanLogDao,
-    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
+    logDao: ScanLogDao
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var selectedTab by remember { mutableIntStateOf(0) }
     var isBusy by remember { mutableStateOf(false) }
 
     val logs by logDao.getAllLogs().collectAsState(initial = emptyList())
@@ -108,13 +106,11 @@ fun MainScreen(
 
         when (selectedTab) {
             0 -> VirusScanScreen(
-                context = context,
                 isBusy = isBusy,
                 logs = logs,
-                logDao = logDao,
                 onScanStart = {
                     isBusy = true
-                    lifecycleScope.launch(Dispatchers.IO) {
+                    coroutineScope.launch(Dispatchers.IO) {
                         SecurityChecker.scanDeviceAndLog(context, logDao)
                         runClamAvScan(logDao)
                         withContext(Dispatchers.Main) {
@@ -123,17 +119,15 @@ fun MainScreen(
                     }
                 },
                 onClearLogs = {
-                    lifecycleScope.launch(Dispatchers.IO) {
+                    coroutineScope.launch(Dispatchers.IO) {
                         logDao.clearLogs()
                     }
                 }
             )
             1 -> UpdateScreen(
-                context = context,
                 updateJsonUrl = updateJsonUrl,
                 publicKeyPem = publicKeyPem,
-                logDao = logDao,
-                lifecycleScope = lifecycleScope
+                logDao = logDao
             )
         }
     }
@@ -153,10 +147,8 @@ private suspend fun runClamAvScan(logDao: ScanLogDao) {
 
 @Composable
 fun VirusScanScreen(
-    context: android.content.Context,
     isBusy: Boolean,
     logs: List<ScanLogEntity>,
-    logDao: ScanLogDao,
     onScanStart: () -> Unit,
     onClearLogs: () -> Unit
 ) {
@@ -241,36 +233,61 @@ fun VirusScanScreen(
 
 @Composable
 fun UpdateScreen(
-    context: android.content.Context,
     updateJsonUrl: String,
     publicKeyPem: String,
-    logDao: ScanLogDao,
-    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
+    logDao: ScanLogDao
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var statusText by remember { mutableStateOf("Kontrol ediliyor...") }
     var isChecking by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
-    var progressPercent by remember { mutableStateOf(0) }
+    var progressPercent by remember { mutableIntStateOf(0) }
     var progressDetail by remember { mutableStateOf("") }
     var updateInfoState by remember { mutableStateOf<UpdateInfo?>(null) }
 
+    fun checkUpdate() {
+        isChecking = true
+        statusText = "Sürüm denetleniyor..."
+
+        coroutineScope.launch(Dispatchers.IO) {
+            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Güncelleme denetimi başlatıldı."))
+            val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
+
+            withContext(Dispatchers.Main) {
+                isChecking = false
+                updateInfoState = updateInfo
+
+                when {
+                    updateInfo == null -> {
+                        statusText = "Hata: Sunucuya veya GitHub API'ye ulaşılamadı."
+                        coroutineScope.launch(Dispatchers.IO) {
+                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucu yanıt vermedi."))
+                        }
+                    }
+                    !updateInfo.hasUpdate -> {
+                        statusText = "Cihazınız güncel. (Sürüm: v${updateInfo.currentVersionCode})"
+                        coroutineScope.launch(Dispatchers.IO) {
+                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Sürüm v${updateInfo.currentVersionCode} güncel."))
+                        }
+                    }
+                    else -> {
+                        statusText = "Yeni güncelleme mevcut! (v${updateInfo.versionCode})"
+                        coroutineScope.launch(Dispatchers.IO) {
+                            logDao.insertLog(
+                                ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm tespit edildi: v${updateInfo.versionCode}")
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Otomatik Kontrol (Auto-Check)
     LaunchedEffect(Unit) {
-        checkUpdateInternal(
-            context = context,
-            updateJsonUrl = updateJsonUrl,
-            logDao = logDao,
-            lifecycleScope = lifecycleScope,
-            onStart = {
-                isChecking = true
-                statusText = "Sürüm denetleniyor..."
-            },
-            onResult = { info, status ->
-                isChecking = false
-                updateInfoState = info
-                statusText = status
-            }
-        )
+        checkUpdate()
     }
 
     Column(
@@ -320,7 +337,7 @@ fun UpdateScreen(
                             Text(text = "Boyut: ${info.fileSizeFormatted}", fontSize = 12.sp, color = Color.DarkGray)
                             Text(text = "Yayın Tarihi: ${info.publishedAt}", fontSize = 12.sp, color = Color.DarkGray)
                         }
-                        Divider(modifier = Modifier.padding(vertical = 10.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
                         Text(
                             text = "Yenilikler & Değişiklikler:",
                             style = MaterialTheme.typography.labelLarge,
@@ -342,7 +359,7 @@ fun UpdateScreen(
         if (isDownloading) {
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 LinearProgressIndicator(
-                    progress = progressPercent / 100f,
+                    progress = { progressPercent / 100f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
@@ -368,33 +385,37 @@ fun UpdateScreen(
                     isDownloading = true
                     statusText = "APK İndiriliyor..."
 
-                    lifecycleScope.launch(Dispatchers.IO) {
+                    coroutineScope.launch(Dispatchers.IO) {
                         logDao.insertLog(
                             ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indirmesi başlatıldı: ${info.apkUrl}")
                         )
-                    }
 
-                    ApkDownloader.downloadAndVerifyApk(
-                        context = context,
-                        apkUrl = info.apkUrl,
-                        expectedSignatureBase64 = info.signature,
-                        publicKeyPem = publicKeyPem,
-                        maxRetries = 3,
-                        onProgress = { percent, downloaded, total ->
-                            progressPercent = percent
-                            val downloadedMb = String.format("%.2f", downloaded / (1024.0 * 1024.0))
-                            val totalMb = String.format("%.2f", total / (1024.0 * 1024.0))
-                            progressDetail = "$downloadedMb MB / $totalMb MB"
-                        },
-                        onResult = { success, message ->
-                            isDownloading = false
-                            statusText = message
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val level = if (success) "INFO" else "CRITICAL"
-                                logDao.insertLog(ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonuç: $message"))
+                        ApkDownloader.downloadAndVerifyApk(
+                            context = context,
+                            apkUrl = info.apkUrl,
+                            expectedSignatureBase64 = info.signature,
+                            publicKeyPem = publicKeyPem,
+                            maxRetries = 3,
+                            onProgress = { percent, downloaded, total ->
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    progressPercent = percent
+                                    val downloadedMb = String.format("%.2f", downloaded / (1024.0 * 1024.0))
+                                    val totalMb = String.format("%.2f", total / (1024.0 * 1024.0))
+                                    progressDetail = "$downloadedMb MB / $totalMb MB"
+                                }
+                            },
+                            onResult = { success, message ->
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    isDownloading = false
+                                    statusText = message
+                                }
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val level = if (success) "INFO" else "CRITICAL"
+                                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonuç: $message"))
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 },
                 enabled = !isDownloading && !isChecking,
                 modifier = Modifier.fillMaxWidth()
@@ -409,23 +430,7 @@ fun UpdateScreen(
         }
 
         OutlinedButton(
-            onClick = {
-                checkUpdateInternal(
-                    context = context,
-                    updateJsonUrl = updateJsonUrl,
-                    logDao = logDao,
-                    lifecycleScope = lifecycleScope,
-                    onStart = {
-                        isChecking = true
-                        statusText = "Yeniden denetleniyor..."
-                    },
-                    onResult = { info, status ->
-                        isChecking = false
-                        updateInfoState = info
-                        statusText = status
-                    }
-                )
-            },
+            onClick = { checkUpdate() },
             enabled = !isChecking && !isDownloading,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -433,46 +438,6 @@ fun UpdateScreen(
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
                 Text("Güncellemeleri Yeniden Denetle")
-            }
-        }
-    }
-}
-
-private fun checkUpdateInternal(
-    context: android.content.Context,
-    updateJsonUrl: String,
-    logDao: ScanLogDao,
-    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope,
-    onStart: () -> Unit,
-    onResult: (UpdateInfo?, String) -> Unit
-) {
-    onStart()
-    lifecycleScope.launch(Dispatchers.IO) {
-        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Güncelleme denetimi başlatıldı."))
-        val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
-
-        withContext(Dispatchers.Main) {
-            when {
-                updateInfo == null -> {
-                    onResult(null, "Hata: Sunucuya veya GitHub API'ye ulaşılamadı.")
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucu yanıt vermedi."))
-                    }
-                }
-                !updateInfo.hasUpdate -> {
-                    onResult(updateInfo, "Cihazınız güncel. (Sürüm: v${updateInfo.currentVersionCode})")
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Sürüm v${updateInfo.currentVersionCode} güncel."))
-                    }
-                }
-                else -> {
-                    onResult(updateInfo, "Yeni güncelleme mevcut! (v${updateInfo.versionCode})")
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        logDao.insertLog(
-                            ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm tespit edildi: v${updateInfo.versionCode}")
-                        )
-                    }
-                }
             }
         }
     }

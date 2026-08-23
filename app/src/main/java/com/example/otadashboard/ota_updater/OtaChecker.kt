@@ -3,60 +3,80 @@ package com.example.otadashboard.ota_updater
 import android.content.Context
 import android.content.pm.PackageManager
 import org.json.JSONObject
-import java.net.HttpURLConnection
 import java.net.URL
 
-// Güncelleme verisini tutan data class
 data class UpdateInfo(
-    val hasUpdate: Boolean,
+    val versionCode: Int,
     val apkUrl: String,
     val signature: String,
-    val changelog: String
+    val changelog: String,
+    val hasUpdate: Boolean
 )
 
 object OtaChecker {
 
-    // Doğru ve onaylanmış Raw linkini buraya sabitliyoruz
-    private const val DEFAULT_JSON_URL = "https://raw.githubusercontent.com/a23521745-hub/OTA-Deneyi/refs/heads/main/update.json"
-
-    fun checkForUpdate(context: Context, jsonUrl: String = DEFAULT_JSON_URL): UpdateInfo? {
+    fun checkForUpdate(context: Context, jsonUrl: String): UpdateInfo? {
         return try {
-            // 1. Mevcut sürümü al
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val currentVersionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                pInfo.longVersionCode.toInt()
-            } else {
-                pInfo.versionCode
-            }
-
-            // 2. Sunucudan JSON'u çek
+            // update.json'ı çek
             val url = URL(jsonUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            connection.requestMethod = "GET"
+            val connection = url.openConnection()
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+            val response = connection.inputStream.bufferedReader().readText()
+            val json = JSONObject(response)
 
-            if (connection.responseCode == 200) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = JSONObject(response)
+            val signature = json.getString("signature")
+            val changelog = json.getString("changelog")
 
-                val serverVersion = json.getInt("versionCode")
-                val apkUrl = json.getString("apkUrl")
-                val signature = json.getString("signature")
-                val changelog = json.getString("changelog")
+            // GitHub API'den latest release'i çek
+            val apiUrl = "https://api.github.com/repos/a23521745-hub/OTA-Deneyi/releases/latest"
+            val apiConnection = URL(apiUrl).openConnection()
+            apiConnection.connectTimeout = 15000
+            apiConnection.readTimeout = 15000
+            val apiResponse = apiConnection.inputStream.bufferedReader().readText()
+            val releaseJson = JSONObject(apiResponse)
 
-                // 3. Sürüm karşılaştırması
-                if (serverVersion > currentVersionCode) {
-                    UpdateInfo(true, apkUrl, signature, changelog)
-                } else {
-                    UpdateInfo(false, "", "", "")
+            // Tag name'den version code çıkar (örn: v2 → 2)
+            val tagName = releaseJson.getString("tag_name")
+            val newVersionCode = tagName.filter { it.isDigit() }.toIntOrNull() ?: 1
+
+            // Latest release'deki ilk .apk dosyasını bul
+            val assets = releaseJson.getJSONArray("assets")
+            var apkDownloadUrl = ""
+            for (i in 0 until assets.length()) {
+                val asset = assets.getJSONObject(i)
+                if (asset.getString("name").endsWith(".apk")) {
+                    apkDownloadUrl = asset.getString("browser_download_url")
+                    break
                 }
-            } else {
-                null
             }
+
+            if (apkDownloadUrl.isEmpty()) {
+                return null
+            }
+
+            val currentVersionCode = getCurrentVersionCode(context)
+            val hasUpdate = newVersionCode > currentVersionCode
+
+            UpdateInfo(
+                versionCode = newVersionCode,
+                apkUrl = apkDownloadUrl,
+                signature = signature,
+                changelog = changelog,
+                hasUpdate = hasUpdate
+            )
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    private fun getCurrentVersionCode(context: Context): Int {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionCode
+        } catch (e: PackageManager.NameNotFoundException) {
+            0
         }
     }
 }

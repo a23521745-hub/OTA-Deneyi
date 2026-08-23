@@ -1,6 +1,10 @@
 {
   "versionCode": 3,
+<<<<<<< HEAD
   "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/latest",
+=======
+  "apkUrl": "https://api.github.com/repos/a23521745-hub/OTA-Deneyi/releases/latest",
+>>>>>>> a2e6612 (GitHub API ile otomatik latest release çekme sistemi eklendi)
   "signature": "nP7Hq45QFFP4Zwjdi7BqdsMXkGZKCiyhf3CTrgtCElhfQDkEBqKdCEEp8zlRkYlOCdkK5U/YJlGrmSpeQZRv9mRtHV02w9196SAE+HMyoiTm8JAt2dh+rYucyDZicdaZRE20tWDKgtq/hqHhAbzE6GxFpD/lHlsOKL3NSIPkIj/aIod0t33myK3zBTR9/iUk4Id3F+M1AajMjVUUeGIZQyXvlqI9V6EPi+eE6RIHyzD82+fuhUqP4RNBjjXupTPkc3aQaRT4X8gYOiYu1arnc6quPIKsziGpljDhGANc1uAUImwAcqCzuI33lP/KlNy0bOfxotxFX2wrGJlnkQFxjGFNcTFmgZO2CAdIH36zOmn3YshCiJjtxNLCKyfLYTF4UX+OjcDP9izDGRhL/aYPKLot2vonxaquSPAThLSHa6wVixJP66c7aeGSbGhX4bS/UcH9KUau612fLFUEY0+SIqd8MYkvoGb5lglpqvHRK+sIkofKwwXWjN1l0SJkk2dyqf4S+y/YwEQ1r+zzlS4Pej2hwSk1lvRjiEQmSCFz3h3fVqt9xoQ/ZCZ1rH8+pvfNTzZy9JXAZTRCKbrThfVtzIjeN0+ERYU/yMz5gzRaDV19NiG1PZNkogBUBVj4sO/h2PBnDjQq+4PP/zRjNNWgSAjsHCqCDuDLpu82FJzDiMI=",
   "changelog": "V2: İki sekme UI, temel güvenlik taraması, RSA imza doğrulaması"
 }

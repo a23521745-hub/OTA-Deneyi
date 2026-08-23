@@ -23,6 +23,9 @@ jobs:
       - name: gradlew izinlerini ayarla
         run: chmod +x ./gradlew
 
+      - name: Gradle versiyonunu goster
+        run: ./gradlew --version
+
       - name: assembleDebug calistir
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 

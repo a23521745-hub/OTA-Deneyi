@@ -337,7 +337,7 @@ fun UpdateScreen(
                             Text(text = "Boyut: ${info.fileSizeFormatted}", fontSize = 12.sp, color = Color.DarkGray)
                             Text(text = "Yayın Tarihi: ${info.publishedAt}", fontSize = 12.sp, color = Color.DarkGray)
                         }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                        Divider(modifier = Modifier.padding(vertical = 10.dp))
                         Text(
                             text = "Yenilikler & Değişiklikler:",
                             style = MaterialTheme.typography.labelLarge,
@@ -359,7 +359,7 @@ fun UpdateScreen(
         if (isDownloading) {
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 LinearProgressIndicator(
-                    progress = { progressPercent / 100f },
+                    progress = progressPercent / 100f,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),

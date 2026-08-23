@@ -1,6 +1,6 @@
 {
-  "versionCode": 4,
+  "versionCode": 5,
   "apkUrl": "https://api.github.com/repos/a23521745-hub/OTA-Deneyi/releases/latest",
-  "signature": "nP7Hq45QFFP4Zwjdi7BqdsMXkGZKCiyhf3CTrgtCElhfQDkEBqKdCEEp8zlRkYlOCdkK5U/YJlGrmSpeQZRv9mRtHV02w9196SAE+HMyoiTm8JAt2dh+rYucyDZicdaZRE20tWDKgtq/hqHhAbzE6GxFpD/lHlsOKL3NSIPkIj/aIod0t33myK3zBTR9/iUk4Id3F+M1AajMjVUUeGIZQyXvlqI9V6EPi+eE6RIHyzD82+fuhUqP4RNBjjXupTPkc3aQaRT4X8gYOiYu1arnc6quPIKsziGpljDhGANc1uAUImwAcqCzuI33lP/KlNy0bOfxotxFX2wrGJlnkQFxjGFNcTFmgZO2CAdIH36zOmn3YshCiJjtxNLCKyfLYTF4UX+OjcDP9izDGRhL/aYPKLot2vonxaquSPAThLSHa6wVixJP66c7aeGSbGhX4bS/UcH9KUau612fLFUEY0+SIqd8MYkvoGb5lglpqvHRK+sIkofKwwXWjN1l0SJkk2dyqf4S+y/YwEQ1r+zzlS4Pej2hwSk1lvRjiEQmSCFz3h3fVqt9xoQ/ZCZ1rH8+pvfNTzZy9JXAZTRCKbrThfVtzIjeN0+ERYU/yMz5gzRaDV19NiG1PZNkogBUBVj4sO/h2PBnDjQq+4PP/zRjNNWgSAjsHCqCDuDLpu82FJzDiMI=",
-  "changelog": "V2: İki sekme UI, temel güvenlik taraması, RSA imza doğrulaması"
+  "signature": "NhwTcr5EfeowtiFYV4TMp/18aTa4jlmO06Ypcnohe0XrcaEaLrdavJ5LlPKREwJRs9Qv+ZPs7whKoZP1zVT1UUmETLM6QVbWL7lz4GMCdC1DHC/PqJxGJyntxzqT15C6qa4XXTSbWU8EV+fdt10oidpOCssYk6pd9UwZy8fi/3B/pQGYatIyvrptXN7qcPqRMgPrP7jmE+Aqyj/E09lBU/vbsQhoKhEhwX3oS+lGiAYRgxw1nckGm3xv/tKLclPLPfEle4rXx5UVHpi8csInafJNJxC2o6y422hXYuy4a5oyG3YeOXkngmcbnXOLv13UNxYWmRxszihI1cXpaA1/L29b0YfM4E8yviL5nTi9kWtOvd0oTuecM5qS6I1cM2SyZYUtTcoq4+CokqEp0cTHTDK02yVIY1pV8GUyNhWHSSO+FXqsgmAEZD766RpiCncVVYDMCzqQ+8TAAlZxBivUhIalr/DXH8Zzb2nsBPwVmcVn7zJzCBjv6l9XeymGffb2/8mRjN5TaBmM9JxGoHylZ59JX8aN3N2FKxCqMcdJUveTD+BObw+l/DE28c8oTWfY0OYCGZ3BFtTKotwlnQ3QoXpdtLG7WLuj9v1cJX3srWMu1pTZFIJ+0/fT9p0LU280AaEjVlWWV8k9xdErJhkirbIgQ0rG9jcDG6am32riQ6E=",
+  "changelog": "V5: Antivirüs & Loglar sekme, geliştirilmiş UI"
 }

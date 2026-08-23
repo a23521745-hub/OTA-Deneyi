@@ -2,7 +2,9 @@
   "versionCode": 2,
   "versionName": "1.0.1",
   "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-Realses/app-debug.apk",
-  "releaseNotes": "• OTA deneyi altyapısı güncellendi.\n• Otomatik güncelleme manifest entegrasyonu tamamlandı.",
-  "minSupportedVersion": 1
+  "releaseNotes": "• OTA deneyi altyapısı güncellendi.",
+  "minSupportedVersion": 1,
+  "signature": RjgAqRXVdhbWkw6+hyZTmfCs+qBXHVhEw5gEzINtnga6rcv4H3XKyWJmQWrNK0kSa1au9D3c3hngAjqIYN+e7VzCJ6n3xu/hchEFFb2K+G3tzUy/egJZRtQzepWZIZVgdFiAa9ppAmGYG+bslzfij3v6EPPBuicsLzy/WyMNY0yFx8bw5cqAF04iUFk9TuyZMTfu6HGm8faY2JynCA0PFrxyGvnuLlUSZuWJcOKMx/zwd8gr60HkI6ZY5EVQMDIY060MV/m1NgAdQh9lo4OjX/msZJPIjZEolA5kcGzJoXRTvuEMtVBs0bg8qsAzhRpEoQ5lS3C8/ny8Zn/wYKgrn9eWjnBjPoefCJLno1eQOG1KcAMTY3cbtJiKRQxYao7mA+ZjkNu2CNxKA61vGjWZATAvcaBkMeh93bfmVJIC+vu9PZegmhSeRhIVPh0FFzMFAIJIDlNYL9Yv+hg9mztlkhcquUCacRLw+JELQbERWk7bKrcPhmmauceVqa+GXgP1ukDmh35H5zT/dEdLVAxW8VTWQIzhsWDOc5tsJ2GoN7lkLwmmlLc67rin0gZLliMr64y0KXcGrnnYuNe93rFZt+W7Y6KI2DlaVBSF2nz8BiR24YXN8wjA2pQtu6mwioQ4aM//6wjL2SW4gRLr5mmoHaFLkCCgAsNaKQcskSJs114=~/ota"
 }
+
 

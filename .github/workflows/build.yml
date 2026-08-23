@@ -23,6 +23,9 @@ jobs:
       - name: gradlew izinlerini ayarla
         run: chmod +x ./gradlew
 
+      - name: wrapper properties dosyasini goster
+        run: cat gradle/wrapper/gradle-wrapper.properties
+
       - name: Gradle versiyonunu goster
         run: ./gradlew --version
 

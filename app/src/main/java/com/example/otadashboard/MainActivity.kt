@@ -1,24 +1,19 @@
 package com.example.otadashboard
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.otadashboard.ota_updater.ApkDownloader
 import com.example.otadashboard.ota_updater.OtaChecker
+import com.example.otadashboard.security.SecurityChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,7 +23,6 @@ class MainActivity : ComponentActivity() {
     private val updateJsonUrl =
         "https://raw.githubusercontent.com/a23521745-hub/OTA-Deneyi/refs/heads/main/update.json"
 
-    // Kendi gerçek RSA-4096 public key'ini buraya yapıştır (PEM formatında, X.509/SubjectPublicKeyInfo)
     private val publicKeyPem = """
         -----BEGIN PUBLIC KEY-----
         MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr2+3opTd+QdzzKJzJBUH
@@ -51,97 +45,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                var statusText by remember { mutableStateOf("Sistem Hazır") }
-                var isBusy by remember { mutableStateOf(false) }
-
-                // Compose tabanlı çoklu izin isteme başlatıcısı
-                val permissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions()
-                ) { permissions ->
-                    // İzinler istendikten sonra güncelleme kontrolünü başlat
-                    isBusy = true
-                    statusText = "Denetleniyor..."
-                    performUpdateCheck(
-                        onStatusChange = { statusText = it },
-                        onBusyChange = { isBusy = it }
-                    )
-                }
-
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    DashboardContent(
-                        status = statusText,
-                        isBusy = isBusy,
-                        onCheckUpdate = {
-                            val permissionsToRequest = mutableListOf<String>()
-
-                            // Android 13 ve üzeri için bildirim izni kontrolü
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                                    permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            }
-
-                            // Android 10 ve altı için depolama izni kontrolü
-                            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                                if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                                    permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
-                            }
-
-                            // Eksik izin varsa iste, yoksa doğrudan denetimi başlat
-                            if (permissionsToRequest.isNotEmpty()) {
-                                permissionLauncher.launch(permissionsToRequest.toTypedArray())
-                            } else {
-                                isBusy = true
-                                statusText = "Denetleniyor..."
-                                performUpdateCheck(
-                                    onStatusChange = { statusText = it },
-                                    onBusyChange = { isBusy = it }
-                                )
-                            }
-                        }
+                    MainScreen(
+                        context = this@MainActivity,
+                        updateJsonUrl = updateJsonUrl,
+                        publicKeyPem = publicKeyPem,
+                        lifecycleScope = lifecycleScope
                     )
-                }
-            }
-        }
-    }
-
-    private fun performUpdateCheck(
-        onStatusChange: (String) -> Unit,
-        onBusyChange: (Boolean) -> Unit
-    ) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val updateInfo = OtaChecker.checkForUpdate(this@MainActivity, updateJsonUrl)
-
-            withContext(Dispatchers.Main) {
-                when {
-                    updateInfo == null -> {
-                        onStatusChange("Hata: Sunucuya ulaşılamadı veya manifest okunamadı.")
-                        onBusyChange(false)
-                    }
-                    !updateInfo.hasUpdate -> {
-                        onStatusChange("Cihazınız güncel.")
-                        onBusyChange(false)
-                    }
-                    else -> {
-                        onStatusChange("Güncelleme bulundu, indiriliyor ve doğrulanıyor...")
-                        ApkDownloader.downloadAndVerifyApk(
-                            context = this@MainActivity,
-                            apkUrl = updateInfo.apkUrl,
-                            expectedSignatureBase64 = updateInfo.signature,
-                            publicKeyPem = publicKeyPem,
-                            onResult = { success, message ->
-                                onStatusChange(message)
-                                onBusyChange(false)
-                                if (!success) {
-                                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        )
-                    }
                 }
             }
         }
@@ -149,23 +62,159 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun DashboardContent(
-    status: String,
+fun MainScreen(
+    context: android.content.Context,
+    updateJsonUrl: String,
+    publicKeyPem: String,
+    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+    var statusText by remember { mutableStateOf("Sistem Hazır") }
+    var isBusy by remember { mutableStateOf(false) }
+    var scanResult by remember { mutableStateOf<String?>(null) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Tab Bar
+        TabRow(selectedTabIndex = selectedTab) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Virüs Taraması") }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("OTA Güncelleme") }
+            )
+        }
+
+        // Tab Content
+        when (selectedTab) {
+            0 -> VirusScanScreen(
+                context = context,
+                isBusy = isBusy,
+                scanResult = scanResult,
+                onScanStart = {
+                    isBusy = true
+                    scanResult = null
+                    lifecycleScope.launch(Dispatchers.Default) {
+                        val result = SecurityChecker.scanDevice(context)
+                        withContext(Dispatchers.Main) {
+                            scanResult = result
+                            isBusy = false
+                        }
+                    }
+                }
+            )
+            1 -> UpdateScreen(
+                context = context,
+                status = statusText,
+                isBusy = isBusy,
+                updateJsonUrl = updateJsonUrl,
+                publicKeyPem = publicKeyPem,
+                onStatusChange = { statusText = it },
+                onBusyChange = { isBusy = it },
+                lifecycleScope = lifecycleScope
+            )
+        }
+    }
+}
+
+@Composable
+fun VirusScanScreen(
+    context: android.content.Context,
     isBusy: Boolean,
-    onCheckUpdate: () -> Unit
+    scanResult: String?,
+    onScanStart: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "OTA Servis Paneli", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Virüs Taraması", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(32.dp))
+
+        if (isBusy) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Tarama yapılıyor...")
+        } else if (scanResult != null) {
+            Text(scanResult, style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            Text("Tarama başlatmak için butona basın", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        Button(
+            onClick = onScanStart,
+            enabled = !isBusy,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Tarama Başlat")
+        }
+    }
+}
+
+@Composable
+fun UpdateScreen(
+    context: android.content.Context,
+    status: String,
+    isBusy: Boolean,
+    updateJsonUrl: String,
+    publicKeyPem: String,
+    onStatusChange: (String) -> Unit,
+    onBusyChange: (Boolean) -> Unit,
+    lifecycleScope: androidx.lifecycle.LifecycleCoroutineScope
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = "OTA Güncelleme", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Durum: $status", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = onCheckUpdate,
+            onClick = {
+                onBusyChange(true)
+                onStatusChange("Denetleniyor...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
+                    withContext(Dispatchers.Main) {
+                        when {
+                            updateInfo == null -> {
+                                onStatusChange("Hata: Sunucuya ulaşılamadı")
+                                onBusyChange(false)
+                            }
+                            !updateInfo.hasUpdate -> {
+                                onStatusChange("Cihazınız güncel.")
+                                onBusyChange(false)
+                            }
+                            else -> {
+                                onStatusChange("Güncelleme bulundu, indiriliyor...")
+                                ApkDownloader.downloadAndVerifyApk(
+                                    context = context,
+                                    apkUrl = updateInfo.apkUrl,
+                                    expectedSignatureBase64 = updateInfo.signature,
+                                    publicKeyPem = publicKeyPem,
+                                    onResult = { success, message ->
+                                        onStatusChange(message)
+                                        onBusyChange(false)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
             enabled = !isBusy,
             modifier = Modifier.fillMaxWidth()
         ) {

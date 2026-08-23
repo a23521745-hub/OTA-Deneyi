@@ -1,6 +1,6 @@
 {
-  "versionCode": 2,
-  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/tag/OTA-Deneyi-Realses/Latest",
-  "signature": "UBXnA1jxsJ+JCLZ6zdeKUAsCFiPUOYtyn8+2z+Tyw20X7fy/c2mxVz+fcLD2f8kWwlgvBPwgxYniBDucFBPJPmKKSVoocdXrBnIEwpA8eC6IGIQI4KE3+w0//GNd0Fzx5xJGvepcM+4gFGunCykMF7k8ml5DEq57RYIGg6JeJ2SXyhKNVB9lTz36gw89RztiCPzYQ/CwPPDQCxx19DKekKd1TT4qvkrov2NUTVKCDj8oSNKhiotjGI/FO97ya/1SYKQ5SpgKBBi/OIrvBLhhfTXzz1s1j3RRJauqx+KHyKhiuA3QE3yCCRp4lm6ANlvkDeaMuiLaZ/pCReY20VpJLAGzmrSZkvEf3MFqbkOUpNX4MVU5a8hQrTA3BP6n4KWMT6KgOpAsk5FEcwVQgIeuIfTsPYFKvfx032kTNv3bJV9w18efdSPlUzDFDEUNvkX40Er8ui3A3bTXPYQFIjn6yvzP/eWzPS1vf9O23kTwOQWVvdf+olytPAWPi9m/BPyuOwSFo2bURFuwSraEWvj7irWKh/vciweCnlyBaqv5KOwI0SkJpBW0fWBdOO5YDxhtnZpJscu4KtSSQjxmKd9HBPJMdMJngnQG0lz/Byfzg9q4RJy0jdhSv+i/7MSlJu1rOgEIIfzvokxDOjnU3SchpXIF7Yp/tyFx4rVGMDnmzx4=",
-  "changelog": "İlk test sürümü - RSA imzası doğrulaması ile"
+  "versionCode": 3,
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v2.0/OTA-Deneyi-v2.apk",
+  "signature": "nP7Hq45QFFP4Zwjdi7BqdsMXkGZKCiyhf3CTrgtCElhfQDkEBqKdCEEp8zlRkYlOCdkK5U/YJlGrmSpeQZRv9mRtHV02w9196SAE+HMyoiTm8JAt2dh+rYucyDZicdaZRE20tWDKgtq/hqHhAbzE6GxFpD/lHlsOKL3NSIPkIj/aIod0t33myK3zBTR9/iUk4Id3F+M1AajMjVUUeGIZQyXvlqI9V6EPi+eE6RIHyzD82+fuhUqP4RNBjjXupTPkc3aQaRT4X8gYOiYu1arnc6quPIKsziGpljDhGANc1uAUImwAcqCzuI33lP/KlNy0bOfxotxFX2wrGJlnkQFxjGFNcTFmgZO2CAdIH36zOmn3YshCiJjtxNLCKyfLYTF4UX+OjcDP9izDGRhL/aYPKLot2vonxaquSPAThLSHa6wVixJP66c7aeGSbGhX4bS/UcH9KUau612fLFUEY0+SIqd8MYkvoGb5lglpqvHRK+sIkofKwwXWjN1l0SJkk2dyqf4S+y/YwEQ1r+zzlS4Pej2hwSk1lvRjiEQmSCFz3h3fVqt9xoQ/ZCZ1rH8+pvfNTzZy9JXAZTRCKbrThfVtzIjeN0+ERYU/yMz5gzRaDV19NiG1PZNkogBUBVj4sO/h2PBnDjQq+4PP/zRjNNWgSAjsHCqCDuDLpu82FJzDiMI=",
+  "changelog": "V2: İki sekme UI, temel güvenlik taraması, RSA imza doğrulaması"
 }

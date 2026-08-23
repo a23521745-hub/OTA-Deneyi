@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- İnternet ve İndirme İçin Gerekli İzinler -->
+    <!-- İnternet ve Ağ Durumu İçin Temel İzinler -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Android 8.0+ için dış kaynaklı APK kurulum izni -->
+    
+    <!-- İndirilen APK'yı Kaydetmek İçin Depolama İzinleri (Eski ve Yeni Sürümler İçin) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <!-- Android 13+ (API 33) İçin DownloadManager Bildirim İzni -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Android 8.0+ (API 26) Dış Kaynaklı APK Kurulum İzni (OTA'nın Kalbi) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
@@ -13,7 +22,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.OtaDashboard">
+        android:theme="@style/Theme.OtaDashboard"
+        android:usesCleartextTraffic="true"> 
+        <!-- usesCleartextTraffic="true" eklendi: İleride HTTP (HTTPS olmayan) bir link kullanırsan uygulamanın çökmesini veya ağ hatası vermesini engeller. -->
         
         <activity
             android:name=".MainActivity"

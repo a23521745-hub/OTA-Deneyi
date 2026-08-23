@@ -3,6 +3,7 @@ package com.example.otadashboard.ota_updater
 import android.content.Context
 import android.content.pm.PackageManager
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
 
 data class UpdateInfo(
@@ -22,9 +23,11 @@ object OtaChecker {
         return try {
             // 1. update.json'ı çek
             val url = URL(jsonUrl)
-            val connection = url.openConnection()
+            val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
+            connection.setRequestProperty("User-Agent", "OTADashboard-App") // <--- HTTP 403 ÇÖZÜMÜ
+            
             val response = connection.inputStream.bufferedReader().readText()
             val json = JSONObject(response)
 
@@ -33,18 +36,19 @@ object OtaChecker {
 
             // 2. GitHub API'den latest release'i çek
             val apiUrl = "https://api.github.com/repos/a23521745-hub/OTA-Deneyi/releases/latest"
-            val apiConnection = URL(apiUrl).openConnection()
+            val apiConnection = URL(apiUrl).openConnection() as HttpURLConnection
             apiConnection.connectTimeout = 15000
             apiConnection.readTimeout = 15000
+            apiConnection.setRequestProperty("User-Agent", "OTADashboard-App") // <--- HTTP 403 ÇÖZÜMÜ
+            apiConnection.setRequestProperty("Accept", "application/vnd.github.v3+json")
+
             val apiResponse = apiConnection.inputStream.bufferedReader().readText()
             val releaseJson = JSONObject(apiResponse)
 
-            // Tag name'den version code çıkar (örn: v2 → 2)
             val tagName = releaseJson.optString("tag_name", "v1")
             val newVersionCode = tagName.filter { it.isDigit() }.toIntOrNull() ?: 1
             val publishedAt = releaseJson.optString("published_at", "Bilinmiyor").take(10)
 
-            // Latest release'deki ilk .apk dosyasını ve boyutunu bul
             val assets = releaseJson.getJSONArray("assets")
             var apkDownloadUrl = ""
             var fileSizeBytes = 0L
@@ -58,13 +62,10 @@ object OtaChecker {
                 }
             }
 
-            if (apkDownloadUrl.isEmpty()) {
-                return null
-            }
+            if (apkDownloadUrl.isEmpty()) return null
 
             val currentVersionCode = getCurrentVersionCode(context)
             val hasUpdate = newVersionCode > currentVersionCode
-            val fileSizeFormatted = formatFileSize(fileSizeBytes)
 
             UpdateInfo(
                 versionCode = newVersionCode,
@@ -72,7 +73,7 @@ object OtaChecker {
                 apkUrl = apkDownloadUrl,
                 signature = signature,
                 changelog = changelog,
-                fileSizeFormatted = fileSizeFormatted,
+                fileSizeFormatted = formatFileSize(fileSizeBytes),
                 publishedAt = publishedAt,
                 hasUpdate = hasUpdate
             )

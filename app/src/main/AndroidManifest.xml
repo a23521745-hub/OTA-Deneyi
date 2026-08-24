@@ -3,64 +3,53 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- =========================
-         NETWORK
+         NETWORK PERMISSIONS
          ========================= -->
-
-    <!-- OTA manifest / GitHub Release erişimi -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Ağ bağlantısı durumunu kontrol etmek için -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-
     <!-- =========================
-         STORAGE
+         STORAGE PERMISSIONS (SCOPED STORAGE COMPAT)
          ========================= -->
-
-    <!-- Android 9 ve altı için geriye dönük uyumluluk -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-
-    <!-- Android 12 ve altı eski storage senaryoları -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-
     <!-- =========================
-         NOTIFICATIONS
+         NOTIFICATIONS (ANDROID 13+)
          ========================= -->
-
-    <!-- Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-
     <!-- =========================
-         APK INSTALLATION
+         APK INSTALLATION PERMISSION
          ========================= -->
-
-    <!-- OTA üzerinden indirilen APK'nın kurulum ekranını açabilmek için -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
-
     <!-- =========================
-         NFC / HIZLI AKTARIM
+         NFC HARDWARE & PERMISSIONS
          ========================= -->
-
-    <!-- NFC donanımı olmayan cihazlarda uygulama yine kurulabilsin -->
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="false" />
-
-    <!-- NFC erişimi -->
     <uses-permission android:name="android.permission.NFC" />
 
+    <!-- =========================
+         PACKAGE VISIBILITY QUERIES (ANDROID 11+ / API 30+)
+         ========================= -->
+    <queries>
+        <!-- PackageInstaller ve APK çalıştırma Intent'lerinin sistem tarafından sorgulanabilmesi için -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.android.package-archive" />
+        </intent>
+    </queries>
 
     <!-- =========================
-         APPLICATION
+         APPLICATION CONFIGURATION
          ========================= -->
-
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -68,15 +57,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OtaDashboard"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="false"
+        tools:targetApi="34">
 
         <!-- =========================
              MAIN ACTIVITY
              ========================= -->
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:label="@string/app_name"
             android:theme="@style/Theme.OtaDashboard">
 
@@ -85,14 +75,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- NFC Etiket Algılama Filtreleri (Opsiyonel Derin Bağlantı) -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
         </activity>
 
-
         <!-- =========================
-             FILE PROVIDER
-             OTA APK INSTALLATION
+             FILE PROVIDER FOR OTA INSTALLATION
              ========================= -->
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

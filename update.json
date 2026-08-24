@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "apkUrl": "https://api.github.com/repos/a23521745-hub/OTA-Deneyi/releases/latest",
-  "signature": "ajo+LVGpAI7wRas2kf6UFqv+S2N8HQLJ6xq/pN8yWF6wydsAg338LuLBuUljCzMYAWTfBgHRpbUCrUhEK1sLwSfqFoMs8y4UqZuEo15Bqth8psdumHqVhA11ovugZg0ZY6xfP9WMmKJC+Npv5siTy/1xePFgWQblVNRwRPTd0BIB6r6Tb1ApJ4FdiDfOeHb5WF3vx6WHppY0xGE6QWbtv6XRbVBo+H6KfglLch1bSJzO4ww30GIDGckaVG/7iNdlQM16KLbjJfQAq681y9m9HJVDfNWDOYkuUGI+npy974A/KlLd5VXk9nL9bZVn5epSsg+SRv7saMVJ0TKcnRaYVZhnoD6jtXoTrCqZHFQALcwoLgXs4KDEvkPhcHfIvXvbbzHSozUfs9iExUqXv34byLUhQed/gXRQOaoPtaXSyuO3XviCEcD2Ri8ZfNrErU7guFm3yk/h7/UKfKjZpVd4KgXjqLSos592Fm2AHQQeE+GzOQUVz7v6lQRZPjSY5/yallvWqjQxorJ9/J6FgpPdiXwTuzn2mGmXNpt1WsJ7Hl+uLxrFwrptFd7w6wb4BjXYjTUgcbTm+zf4TRBQfQ3IFxb/OfPq0VlmigRiEVRoBSlkrefXp1S+dFRym1KjYpYlyehT9Rgs0xL5H5Q0ONtadV9joFlRrkZlfMKorem67dk=",
-  "changelog": "V6: Otomatik imzalama sistemi eklendi"
+  "versionCode": 1,
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-Realses/OTA-Deneyi.apk",
+  "signature": "Zqd+RSiVi7GaJ1Gz98XszPmeIxBF5n6qBnflsuNtvnA8sc8t7V72rQjT9XPW/GRag3TBqyuuEVv2A6GcqNCZrfY3/97hYRxycnKPktlNC9cg3k3qJtSIssZ+P88QzrXmp3gxrGXqoQMdkIUqsqhga6uHNfZ378an+udj1ewp1P0OMb+urAtJPz2/EP5NzziFqFbhLt3H58hCCzLh4U2HLgQqy0dmBMxzbsCTR/3dwfZPE89mcPz4xUCuvqf9QuTE3q/X97vmyceCMMPCgX3UKeTo/LAe3JTa1UPxxUNIRscSpPsNKAi+p2vR+V8N+OkRLlvk0sr2M28i0D/JEHlUqKG/uO5MwlJEBaprQ7d/JVFxEinNLBCVY6hhOdKu0dQYfTBeYX1mVkU75Eyqq+Dsebf8UkSBmZ17cAF6VsL9U5Ma2xS+vESDldZkme1YrISG1wlkvGbP1lt/Xu4tNLqYreVnE1Zvrq0gHb0AipwQiCtbavKSQDu0yGvtHAUIouwMecyFrROKspnhTi7X572XiPksfOlpP419Yd76pG7otgb8h7uQZ1/vrwDNgxI3DQXN44Cf+6L6yJtZwmppRaT1uVndT3/qBxsLYPNQYWjf0JLA/iKsXpZWpqK1AegLIRTbZJ07bsxqf1Dc9HjItrI6Mvqdx/+7yH6E3s+onSr2Ks0=",
+  "changelog": "Otomatik build - versiyon 1"
 }

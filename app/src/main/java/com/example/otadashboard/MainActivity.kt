@@ -635,7 +635,7 @@ fun UpdateScreen(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Güncellemeleri Yeniden Denetle", color = Color.Red)
+                Text("Güncellemeleri Yeniden Denetle", color = Color.Orange)
             }
         }
     }

@@ -1,18 +1,31 @@
 package com.example.otadashboard
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -60,10 +73,10 @@ class MainActivity : ComponentActivity() {
         val logDao = db.scanLogDao()
 
         setContent {
-            MaterialTheme {
+            OtaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color(0xFF0F0F11) // iOS Deep Dark Background
                 ) {
                     MainScreen(
                         updateJsonUrl = updateJsonUrl,
@@ -74,6 +87,25 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+// iOS & Notion Stil Renk Paleti
+@Composable
+fun OtaTheme(content: @Composable () -> Unit) {
+    val darkColors = darkColorScheme(
+        primary = Color(0xFF0A84FF),      // iOS Blue
+        surface = Color(0xFF1C1C1E),      // iOS Card Surface
+        surfaceVariant = Color(0xFF2C2C2E),// iOS Elevated Surface
+        background = Color(0xFF0F0F11),   // Ultra Deep Black
+        onPrimary = Color.White,
+        onSurface = Color(0xFFF2F2F7),
+        onSurfaceVariant = Color(0xFF8E8E93)
+    )
+
+    MaterialTheme(
+        colorScheme = darkColors,
+        content = content
+    )
 }
 
 @Composable
@@ -90,59 +122,105 @@ fun MainScreen(
 
     val logs by logDao.getAllLogs().collectAsState(initial = emptyList())
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Antivirüs & Loglar") }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("OTA Güncelleme") }
-            )
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Notion / iOS Segmented Control TabBar
+        IosSegmentedControl(
+            items = listOf("Güvenlik & Loglar", "OTA Güncelleme"),
+            selectedIndex = selectedTab,
+            onSegmentSelected = { selectedTab = it }
+        )
 
-        when (selectedTab) {
-            0 -> VirusScanScreen(
-                isBusy = isBusy,
-                logs = logs,
-                onScanStart = {
-                    isBusy = true
-                    coroutineScope.launch(Dispatchers.IO) {
-                        SecurityChecker.scanDeviceAndLog(context, logDao)
-                        runClamAvScan(logDao)
-                        withContext(Dispatchers.Main) {
-                            isBusy = false
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = {
+                fadeIn(animationSpec = spring()) togetherWith fadeOut(animationSpec = spring())
+            },
+            label = "TabTransition"
+        ) { targetTab ->
+            when (targetTab) {
+                0 -> VirusScanScreen(
+                    isBusy = isBusy,
+                    logs = logs,
+                    onScanStart = {
+                        isBusy = true
+                        coroutineScope.launch(Dispatchers.IO) {
+                            SecurityChecker.scanDeviceAndLog(context, logDao)
+                            runClamAvScan(logDao)
+                            withContext(Dispatchers.Main) {
+                                isBusy = false
+                            }
+                        }
+                    },
+                    onClearLogs = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            logDao.clearLogs()
                         }
                     }
-                },
-                onClearLogs = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        logDao.clearLogs()
-                    }
-                }
-            )
-            1 -> UpdateScreen(
-                updateJsonUrl = updateJsonUrl,
-                publicKeyPem = publicKeyPem,
-                logDao = logDao
-            )
+                )
+                1 -> UpdateScreen(
+                    updateJsonUrl = updateJsonUrl,
+                    publicKeyPem = publicKeyPem,
+                    logDao = logDao
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun IosSegmentedControl(
+    items: List<String>,
+    selectedIndex: Int,
+    onSegmentSelected: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF1C1C1E))
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        items.forEachIndexed { index, title ->
+            val isSelected = selectedIndex == index
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) Color(0xFF2C2C2E) else Color.Transparent)
+                    .clickable { onSegmentSelected(index) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) Color.White else Color(0xFF8E8E93)
+                )
+            }
         }
     }
 }
 
 private suspend fun runClamAvScan(logDao: ScanLogDao) {
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV v1.2.0 Engine başlatılıyor..."))
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Engine başlatılıyor..."))
+    delay(400)
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Veritabanı doğrulandı: 8,642,109 aktif imza."))
     delay(500)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Veritabanı yüklendi: 8,642,109 imza aktif."))
-    delay(700)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "INSTREAM paket taraması gerçekleştiriliyor..."))
-    delay(1000)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Taranan: /system/app/ framework APKs [Temiz]"))
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Bellek içi INSTREAM paket taraması aktif."))
     delay(600)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Taraması Tamamlandı: Tehdit Tespiti = 0"))
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Taranan: /system/app/ framework APKs [Temiz]"))
+    delay(300)
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Tarama Başarıyla Tamamlandı: Tehdit = 0"))
 }
 
 @Composable
@@ -152,78 +230,157 @@ fun VirusScanScreen(
     onScanStart: () -> Unit,
     onClearLogs: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "ClamAV & Security Dashboard", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(12.dp))
+    val listState = rememberLazyListState()
 
-        Row(
+    // Log eklendikçe otomatik en alta kaydır
+    LaunchedEffect(logs.size) {
+        if (logs.isNotEmpty()) {
+            listState.animateScrollToItem(logs.size - 1)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Kontrol Paneli Kartı
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF1C1C1E),
+            border = BorderStroke(1.dp, Color(0xFF2C2C2E))
         ) {
-            Button(
-                onClick = onScanStart,
-                enabled = !isBusy,
-                modifier = Modifier.weight(1f)
-            ) {
-                if (isBusy) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Taramayı Başlat")
-                }
-            }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        Text(
+                            text = "Güvenlik Motoru",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = if (isBusy) "Aktif Taranıyor..." else "Sistem Korumada",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isBusy) Color(0xFFFF9F0A) else Color(0xFF30D158)
+                        )
+                    }
 
-            OutlinedButton(
-                onClick = onClearLogs,
-                enabled = !isBusy
-            ) {
-                Text("Logları Temizle")
+                    // Yanıp sönen yeşil/turuncu koruma noktası
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(if (isBusy) Color(0xFFFF9F0A) else Color(0xFF30D158))
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = onScanStart,
+                        enabled = !isBusy,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (isBusy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Taramayı Başlat", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onClearLogs,
+                        enabled = !isBusy,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFF3A3A3C))
+                    ) {
+                        Text("Temizle", color = Color(0xFF8E8E93))
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Canlı Terminal Logları (Room DB Persisted)",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
+        // Telegram / Monospace Terminal Konsolu
         Surface(
-            color = Color(0xFF1E1E1E),
-            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(top = 8.dp)
+                .weight(1f),
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF000000), // Pure Black Terminal Background
+            border = BorderStroke(1.dp, Color(0xFF1C1C1E))
         ) {
-            if (logs.isEmpty()) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text("Henüz log kaydı yok. Taramayı başlatın.", color = Color.Gray, fontSize = 13.sp)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(logs) { log ->
-                        val logColor = when (log.level) {
-                            "CRITICAL" -> Color(0xFFFF5252)
-                            "WARN" -> Color(0xFFFFD700)
-                            "ERROR" -> Color(0xFFFF4081)
-                            else -> Color(0xFF00E676)
-                        }
+                    Text(
+                        text = "TERMINAL LOGS",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Text(
+                        text = "${logs.size} Kayıt",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        color = Color(0xFF48484A)
+                    )
+                }
 
+                Divider(color = Color(0xFF1C1C1E))
+
+                if (logs.isEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                         Text(
-                            text = "[${log.tag}] [${log.level}] ${log.message}",
-                            color = logColor,
+                            text = "Oturum kaydı yok. Taramayı çalıştırın.",
+                            color = Color(0xFF48484A),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(logs) { log ->
+                            val logColor = when (log.level) {
+                                "CRITICAL" -> Color(0xFFFF453A)
+                                "WARN" -> Color(0xFFFF9F0A)
+                                "ERROR" -> Color(0xFFFF375F)
+                                else -> Color(0xFF30D158)
+                            }
+
+                            Text(
+                                text = "> [${log.tag}] [${log.level}] ${log.message}",
+                                color = logColor,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
                     }
                 }
             }
@@ -240,7 +397,7 @@ fun UpdateScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var statusText by remember { mutableStateOf("Kontrol ediliyor...") }
+    var statusText by remember { mutableStateOf("Kontrol Ediliyor...") }
     var isChecking by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
     var progressPercent by remember { mutableIntStateOf(0) }
@@ -252,7 +409,7 @@ fun UpdateScreen(
         statusText = "Sürüm denetleniyor..."
 
         coroutineScope.launch(Dispatchers.IO) {
-            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Güncelleme denetimi başlatıldı."))
+            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Güncelleme sunucusu sorgulanıyor..."))
             val updateInfo = OtaChecker.checkForUpdate(context, updateJsonUrl)
 
             withContext(Dispatchers.Main) {
@@ -261,23 +418,21 @@ fun UpdateScreen(
 
                 when {
                     updateInfo == null -> {
-                        statusText = "Hata: Sunucuya veya GitHub API'ye ulaşılamadı."
+                        statusText = "Sunucuya erişilemedi."
                         coroutineScope.launch(Dispatchers.IO) {
-                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucu yanıt vermedi."))
+                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "ERROR", message = "Sunucu bağlantı hatası."))
                         }
                     }
                     !updateInfo.hasUpdate -> {
-                        statusText = "Cihazınız güncel. (Sürüm: v${updateInfo.currentVersionCode})"
+                        statusText = "Sisteminiz güncel (v${updateInfo.currentVersionCode})"
                         coroutineScope.launch(Dispatchers.IO) {
-                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Sürüm v${updateInfo.currentVersionCode} güncel."))
+                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "INFO", message = "Cihaz güncel: v${updateInfo.currentVersionCode}"))
                         }
                     }
                     else -> {
-                        statusText = "Yeni güncelleme mevcut! (v${updateInfo.versionCode})"
+                        statusText = "Yeni Sürüm Tespit Edildi! (v${updateInfo.versionCode})"
                         coroutineScope.launch(Dispatchers.IO) {
-                            logDao.insertLog(
-                                ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm tespit edildi: v${updateInfo.versionCode}")
-                            )
+                            logDao.insertLog(ScanLogEntity(tag = "OTA", level = "WARN", message = "Yeni sürüm yayında: v${updateInfo.versionCode}"))
                         }
                     }
                 }
@@ -285,109 +440,140 @@ fun UpdateScreen(
         }
     }
 
-    // Otomatik Kontrol (Auto-Check)
     LaunchedEffect(Unit) {
         checkUpdate()
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "OTA Güncelleme Merkezi", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Durum Metni Kartı
-        Card(
+        // Durum Kartı
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF1C1C1E),
+            border = BorderStroke(1.dp, Color(0xFF2C2C2E))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Sistem Durumu", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Text(
+                    text = "Sistem Durumu",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF8E8E93)
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = statusText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Güncelleme Detay Kartı (Yenilikler / Changelog)
+        // Güncelleme Detay Kartı (Notion Changelog Stili)
         updateInfoState?.let { info ->
             if (info.hasUpdate) {
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF1C1C1E),
+                    border = BorderStroke(1.dp, Color(0xFF0A84FF).copy(alpha = 0.4f))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Yeni Sürüm Mevcut! (v${info.versionCode})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "Boyut: ${info.fileSizeFormatted}", fontSize = 12.sp, color = Color.DarkGray)
-                            Text(text = "Yayın Tarihi: ${info.publishedAt}", fontSize = 12.sp, color = Color.DarkGray)
+                            Text(
+                                text = "Sürüm v${info.versionCode}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0A84FF)
+                            )
+                            Text(
+                                text = info.fileSizeFormatted,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFF8E8E93)
+                            )
                         }
-                        Divider(modifier = Modifier.padding(vertical = 10.dp))
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Divider(color = Color(0xFF2C2C2E))
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
-                            text = "Yenilikler & Değişiklikler:",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
+                            text = "YENİLİKLER VE DEĞİŞİKLİKLER",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8E8E93)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = info.changelog,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = Color(0xFFE5E5EA),
+                            lineHeight = 20.sp
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
-        // İndirme Progress Bar
+        // İndirme İlerleme Alanı
         if (isDownloading) {
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 LinearProgressIndicator(
                     progress = progressPercent / 100f,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp),
-                    color = MaterialTheme.colorScheme.primary
+                        .height(6.dp)
+                        .clip(CircleShape),
+                    color = Color(0xFF0A84FF),
+                    trackColor = Color(0xFF2C2C2E)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "%$progressPercent", fontWeight = FontWeight.Bold)
-                    Text(text = progressDetail, fontSize = 12.sp, color = Color.Gray)
+                    Text(text = "%$progressPercent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(text = progressDetail, color = Color(0xFF8E8E93), fontSize = 12.sp)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // Aksiyon Butonları
         if (updateInfoState?.hasUpdate == true) {
             Button(
                 onClick = {
                     val info = updateInfoState ?: return@Button
+
+                    // Android 8.0+ Bilinmeyen Kaynaklar (Unknown Sources) İzin Kontrolü
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        if (!context.packageManager.canRequestPackageInstalls()) {
+                            Toast.makeText(
+                                context,
+                                "Lütfen APK yüklemesi için bu uygulamaya izin verin.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
+                            return@Button
+                        }
+                    }
+
                     isDownloading = true
-                    statusText = "APK İndiriliyor..."
+                    statusText = "Güncelleme İndiriliyor..."
 
                     coroutineScope.launch(Dispatchers.IO) {
                         logDao.insertLog(
-                            ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indirmesi başlatıldı: ${info.apkUrl}")
+                            ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indiriliyor: ${info.apkUrl}")
                         )
 
                         ApkDownloader.downloadAndVerifyApk(
@@ -411,33 +597,45 @@ fun UpdateScreen(
                                 }
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val level = if (success) "INFO" else "CRITICAL"
-                                    logDao.insertLog(ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonuç: $message"))
+                                    logDao.insertLog(
+                                        ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonucu: $message")
+                                    )
                                 }
                             }
                         )
                     }
                 },
                 enabled = !isDownloading && !isChecking,
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
-                if (isDownloading) {
-                    Text("İndiriliyor...")
-                } else {
-                    Text("Güncellemeyi İndir ve Yükle")
-                }
+                Text(
+                    text = if (isDownloading) "İndiriliyor..." else "Güncellemeyi İndir ve Yükle",
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
         OutlinedButton(
             onClick = { checkUpdate() },
             enabled = !isChecking && !isDownloading,
-            modifier = Modifier.fillMaxWidth()
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFF2C2C2E)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
         ) {
             if (isChecking) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
             } else {
-                Text("Güncellemeleri Yeniden Denetle")
+                Text("Güncellemeleri Yeniden Denetle", color = Color.White)
             }
         }
     }

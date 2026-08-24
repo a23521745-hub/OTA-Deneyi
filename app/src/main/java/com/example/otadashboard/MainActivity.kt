@@ -404,7 +404,7 @@ fun VirusScanScreen(
             }
         }
     }
-}
+} // Eksik olan } burada eklendi
 
 @Composable
 fun UpdateScreen(
@@ -458,4 +458,203 @@ fun UpdateScreen(
         }
     }
 
-    LaunchedEffect(Unit)
+    LaunchedEffect(Unit) {
+        checkUpdate()
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Durum Kartı
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Sistem Durumu",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+
+        // Güncelleme Detay Kartı (Notion Changelog Stili)
+        updateInfoState?.let { info ->
+            if (info.hasUpdate) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, Color(0xFF0A84FF).copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sürüm v${info.versionCode}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0A84FF)
+                            )
+                            Text(
+                                text = info.fileSizeFormatted,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "YENİLİKLER VE DEĞİŞİKLİKLER",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = info.changelog,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // İndirme İlerleme Alanı
+        if (isDownloading) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    progress = progressPercent / 100f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape),
+                    color = Color(0xFF0A84FF),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "%$progressPercent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(text = progressDetail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Aksiyon Butonları
+        if (updateInfoState?.hasUpdate == true) {
+            Button(
+                onClick = {
+                    val info = updateInfoState ?: return@Button
+
+                    // Android 8.0+ Bilinmeyen Kaynaklar (Unknown Sources) İzin Kontrolü
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        if (!context.packageManager.canRequestPackageInstalls()) {
+                            Toast.makeText(
+                                context,
+                                "Lütfen APK yüklemesi için bu uygulamaya izin verin.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
+                            return@Button
+                        }
+                    }
+
+                    isDownloading = true
+                    statusText = "Güncelleme İndiriliyor..."
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        logDao.insertLog(
+                            ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indiriliyor: ${info.apkUrl}")
+                        )
+
+                        ApkDownloader.downloadAndVerifyApk(
+                            context = context,
+                            apkUrl = info.apkUrl,
+                            expectedSignatureBase64 = info.signature,
+                            publicKeyPem = publicKeyPem,
+                            maxRetries = 3,
+                            onProgress = { percent, downloaded, total ->
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    progressPercent = percent
+                                    val downloadedMb = String.format("%.2f", downloaded / (1024.0 * 1024.0))
+                                    val totalMb = String.format("%.2f", total / (1024.0 * 1024.0))
+                                    progressDetail = "$downloadedMb MB / $totalMb MB"
+                                }
+                            },
+                            onResult = { success, message ->
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    isDownloading = false
+                                    statusText = message
+                                }
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val level = if (success) "INFO" else "CRITICAL"
+                                    logDao.insertLog(
+                                        ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonucu: $message")
+                                    )
+                                }
+                            }
+                        )
+                    }
+                },
+                enabled = !isDownloading && !isChecking,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    text = if (isDownloading) "İndiriliyor..." else "Güncellemeyi İndir ve Yükle",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        OutlinedButton(
+            onClick = { checkUpdate() },
+            enabled = !isChecking && !isDownloading,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            if (isChecking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Güncellemeleri Yeniden Denetle", color = Color.White)
+            }
+        }
+    }
+}

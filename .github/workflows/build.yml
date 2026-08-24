@@ -29,11 +29,17 @@ jobs:
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Private key'i kaydet
-        env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          echo "$PRIVATE_KEY" > /tmp/private_key.pem
-          cat /tmp/private_key.pem
+          cat > /tmp/private_key.pem << 'KEYEOF'
+          ${{ secrets.PRIVATE_KEY }}
+          KEYEOF
+
+      - name: Key kontrol
+        run: |
+          echo "=== Private Key ==="
+          head -3 /tmp/private_key.pem
+          echo "=== Key Boyutu ==="
+          wc -l /tmp/private_key.pem
 
       - name: APK'yı imzala
         run: |
@@ -42,7 +48,6 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
           
           base64 -w0 /tmp/signature.sig > signature.b64
-          cat signature.b64
 
       - name: Release oluştur
         uses: softprops/action-gh-release@v1
@@ -56,4 +61,4 @@ jobs:
 
       - name: Temizle
         if: always()
-        run: rm -f /tmp/private_key.pem /tmp/signature.sig signature.b64
+        run: rm -f /tmp/private_key.pem /tmp/signature.sig

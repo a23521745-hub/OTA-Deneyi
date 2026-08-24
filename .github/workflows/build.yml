@@ -46,16 +46,47 @@ jobs:
           base64 -w0 /tmp/signature.sig > signature.b64
           cp app/build/outputs/apk/debug/app-debug.apk OTA-Deneyi-v6.apk
 
-      - name: Release oluştur ve yükle
-        uses: softprops/action-gh-release@v1
+      - name: Release sil ve yenisini oluştur
+        uses: actions/github-script@v7
         with:
-          tag_name: OTA-Deneyi-Realses
-          generate_release_notes: true
-          files: |
-            OTA-Deneyi-v6.apk
-            signature.b64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            // Eski release'i bul
+            const releases = await github.rest.repos.listReleases({owner, repo});
+            const oldRelease = releases.data.find(r => r.tag_name === 'OTA-Deneyi-Realses');
+            
+            if (oldRelease) {
+              await github.rest.repos.deleteRelease({owner, repo, release_id: oldRelease.id});
+            }
+            
+            // Yeni release oluştur
+            const newRelease = await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: 'OTA-Deneyi-Realses',
+              name: 'OTA-Deneyi-v6',
+              body: 'Automatic release'
+            });
+            
+            // Dosyaları yükle
+            const apkData = fs.readFileSync('OTA-Deneyi-v6.apk');
+            const sigData = fs.readFileSync('signature.b64');
+            
+            await github.rest.repos.uploadReleaseAsset({
+              owner, repo,
+              release_id: newRelease.id,
+              name: 'OTA-Deneyi-v6.apk',
+              data: apkData
+            });
+            
+            await github.rest.repos.uploadReleaseAsset({
+              owner, repo,
+              release_id: newRelease.id,
+              name: 'signature.b64',
+              data: sigData
+            });
 
       - name: Temizle
         if: always()

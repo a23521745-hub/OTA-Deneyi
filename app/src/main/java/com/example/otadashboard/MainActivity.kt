@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
             OtaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF0F0F11) // iOS Deep Dark Background
+                    color = MaterialTheme.colorScheme.surfaceVariant // iOS Deep Dark Background
                 ) {
                     MainScreen(
                         updateJsonUrl = updateJsonUrl,
@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
 // iOS & Notion Stil Renk Paleti
 @Composable
 fun OtaTheme(content: @Composable () -> Unit) {
+    // Material You 3 Renk Paleti
     val darkColors = darkColorScheme(
         primary = Color(0xFF0A84FF),      // iOS Blue
         surface = Color(0xFF1C1C1E),      // iOS Card Surface
@@ -104,6 +105,23 @@ fun OtaTheme(content: @Composable () -> Unit) {
 
     MaterialTheme(
         colorScheme = darkColors,
+        typography = Typography(
+            displayLarge = MaterialTheme.typography.displayLarge.copy(fontSize = 22.sp),
+            displayMedium = MaterialTheme.typography.displayMedium.copy(fontSize = 18.sp),
+            displaySmall = MaterialTheme.typography.displaySmall.copy(fontSize = 16.sp),
+            headlineLarge = MaterialTheme.typography.headlineLarge.copy(fontSize = 16.sp),
+            headlineMedium = MaterialTheme.typography.headlineMedium.copy(fontSize = 14.sp),
+            headlineSmall = MaterialTheme.typography.headlineSmall.copy(fontSize = 12.sp),
+            titleLarge = MaterialTheme.typography.titleLarge.copy(fontSize = 14.sp),
+            titleMedium = MaterialTheme.typography.titleMedium.copy(fontSize = 12.sp),
+            titleSmall = MaterialTheme.typography.titleSmall.copy(fontSize = 10.sp),
+            bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+            bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+            bodySmall = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+            labelLarge = MaterialTheme.typography.labelLarge.copy(fontSize = 12.sp),
+            labelMedium = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
+            labelSmall = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+        ),
         content = content
     )
 }
@@ -140,7 +158,7 @@ fun MainScreen(
         AnimatedContent(
             targetState = selectedTab,
             transitionSpec = {
-                fadeIn(animationSpec = spring()) togetherWith fadeOut(animationSpec = spring())
+                fadeIn(animationSpec = spring(stiffness = 200f)) togetherWith fadeOut(animationSpec = spring(stiffness = 200f))
             },
             label = "TabTransition"
         ) { targetTab ->
@@ -185,7 +203,7 @@ fun IosSegmentedControl(
             .fillMaxWidth()
             .height(44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1C1C1E))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -196,7 +214,7 @@ fun IosSegmentedControl(
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) Color(0xFF2C2C2E) else Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable { onSegmentSelected(index) },
                 contentAlignment = Alignment.Center
             ) {
@@ -204,7 +222,7 @@ fun IosSegmentedControl(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) Color.White else Color(0xFF8E8E93)
+                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -244,8 +262,8 @@ fun VirusScanScreen(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF1C1C1E),
-            border = BorderStroke(1.dp, Color(0xFF2C2C2E))
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -301,9 +319,9 @@ fun VirusScanScreen(
                         onClick = onClearLogs,
                         enabled = !isBusy,
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFF3A3A3C))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Text("Temizle", color = Color(0xFF8E8E93))
+                        Text("Temizle", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -318,7 +336,7 @@ fun VirusScanScreen(
                 .weight(1f),
             shape = RoundedCornerShape(16.dp),
             color = Color(0xFF000000), // Pure Black Terminal Background
-            border = BorderStroke(1.dp, Color(0xFF1C1C1E))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(
@@ -333,17 +351,17 @@ fun VirusScanScreen(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF8E8E93)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "${logs.size} Kayıt",
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
-                        color = Color(0xFF48484A)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 }
 
-                Divider(color = Color(0xFF1C1C1E))
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                 if (logs.isEmpty()) {
                     Box(
@@ -352,7 +370,7 @@ fun VirusScanScreen(
                     ) {
                         Text(
                             text = "Oturum kaydı yok. Taramayı çalıştırın.",
-                            color = Color(0xFF48484A),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp
                         )
@@ -440,203 +458,4 @@ fun UpdateScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        checkUpdate()
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Durum Kartı
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF1C1C1E),
-            border = BorderStroke(1.dp, Color(0xFF2C2C2E))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Sistem Durumu",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF8E8E93)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-
-        // Güncelleme Detay Kartı (Notion Changelog Stili)
-        updateInfoState?.let { info ->
-            if (info.hasUpdate) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF1C1C1E),
-                    border = BorderStroke(1.dp, Color(0xFF0A84FF).copy(alpha = 0.4f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Sürüm v${info.versionCode}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0A84FF)
-                            )
-                            Text(
-                                text = info.fileSizeFormatted,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF8E8E93)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Divider(color = Color(0xFF2C2C2E))
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "YENİLİKLER VE DEĞİŞİKLİKLER",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8E8E93)
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = info.changelog,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFE5E5EA),
-                            lineHeight = 20.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        // İndirme İlerleme Alanı
-        if (isDownloading) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    progress = progressPercent / 100f,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(CircleShape),
-                    color = Color(0xFF0A84FF),
-                    trackColor = Color(0xFF2C2C2E)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = "%$progressPercent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text(text = progressDetail, color = Color(0xFF8E8E93), fontSize = 12.sp)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Aksiyon Butonları
-        if (updateInfoState?.hasUpdate == true) {
-            Button(
-                onClick = {
-                    val info = updateInfoState ?: return@Button
-
-                    // Android 8.0+ Bilinmeyen Kaynaklar (Unknown Sources) İzin Kontrolü
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        if (!context.packageManager.canRequestPackageInstalls()) {
-                            Toast.makeText(
-                                context,
-                                "Lütfen APK yüklemesi için bu uygulamaya izin verin.",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                                data = Uri.parse("package:${context.packageName}")
-                            }
-                            context.startActivity(intent)
-                            return@Button
-                        }
-                    }
-
-                    isDownloading = true
-                    statusText = "Güncelleme İndiriliyor..."
-
-                    coroutineScope.launch(Dispatchers.IO) {
-                        logDao.insertLog(
-                            ScanLogEntity(tag = "OTA", level = "WARN", message = "APK indiriliyor: ${info.apkUrl}")
-                        )
-
-                        ApkDownloader.downloadAndVerifyApk(
-                            context = context,
-                            apkUrl = info.apkUrl,
-                            expectedSignatureBase64 = info.signature,
-                            publicKeyPem = publicKeyPem,
-                            maxRetries = 3,
-                            onProgress = { percent, downloaded, total ->
-                                coroutineScope.launch(Dispatchers.Main) {
-                                    progressPercent = percent
-                                    val downloadedMb = String.format("%.2f", downloaded / (1024.0 * 1024.0))
-                                    val totalMb = String.format("%.2f", total / (1024.0 * 1024.0))
-                                    progressDetail = "$downloadedMb MB / $totalMb MB"
-                                }
-                            },
-                            onResult = { success, message ->
-                                coroutineScope.launch(Dispatchers.Main) {
-                                    isDownloading = false
-                                    statusText = message
-                                }
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val level = if (success) "INFO" else "CRITICAL"
-                                    logDao.insertLog(
-                                        ScanLogEntity(tag = "OTA", level = level, message = "OTA Sonucu: $message")
-                                    )
-                                }
-                            }
-                        )
-                    }
-                },
-                enabled = !isDownloading && !isChecking,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(
-                    text = if (isDownloading) "İndiriliyor..." else "Güncellemeyi İndir ve Yükle",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        OutlinedButton(
-            onClick = { checkUpdate() },
-            enabled = !isChecking && !isDownloading,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color(0xFF2C2C2E)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        ) {
-            if (isChecking) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Güncellemeleri Yeniden Denetle", color = Color.White)
-            }
-        }
-    }
-}
+    LaunchedEffect(Unit)

@@ -31,15 +31,8 @@ jobs:
       - name: Private key'i kaydet
         run: |
           cat > /tmp/private_key.pem << 'KEYEOF'
-          ${{ secrets.PRIVATE_KEY }}
+          ${{ secrets._PRIVATEKEY_ }}
           KEYEOF
-
-      - name: Key kontrol
-        run: |
-          echo "=== Private Key ==="
-          head -3 /tmp/private_key.pem
-          echo "=== Key Boyutu ==="
-          wc -l /tmp/private_key.pem
 
       - name: APK'yı imzala
         run: |

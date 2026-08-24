@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
+  "versionCode": 12,
   "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-Realses/OTA-Deneyi.apk",
-  "signature": "Zi2DEAQWzMl0E+BOcmHDsyzNRAnvErZ70l4NqDiVh22Nhd8MlrUmis8dc54NP1vte3EFWUNhyzQnKpH7dsgaRFT6mpN4FHKwCU2vplFJc+LSji/rPDBtgCfJchtlKGa3oMEhiH7t7wy9BcmWVbdGL0VUF/6LipKb4hGUIs23dlt9M9HNwFwfa56zle7W/D0uDAne5GEwQngzpd4tUeNSpRyK9nQi9DMgC4VndHf8UkxjF1QAygCdjyImYF/WNQf/yJLKC7ciI/XiZH8sTqJKTSq5SaSZ1ZLdwrg0iCfaIl0x9Qpm185Nc0pdxkBB0RuBG4mdb6uMUVU5OieqSThUxZgxZRt+IjtA22Cnn0qS6Q0hBWs3O2Yvrj6dwXksVBSCCaM/vHJjueeReFxTnAXaNw09CFq8dTQqtOI2+hAKWYSJo/puGIVPZta+4/rpngpo8XLcIZU4kYvxYzkNjNrAB7aOGXFIJxD1SCaCpGZAtY/jDw1YDPRy53l+uE2HayaPPsO7aORfEjn168el8JGmn4TGB1WMElTbapGdz/NTIfpczZD/PJvBzvd8Nck+agHPqQO9jxbhc+6KGvJGWQ6oPbdwUxugl3PzbZSYiL3K09dV/+CM7AP3rhnfRa6dl1VIL1cqhHlAQT6Lj3wt0TlmSejdbKdME2e8wmJd9LjEbKU=",
-  "changelog": "Otomatik build - versiyon 11"
+  "signature": "$SIGNATURE",
+  "changelog": "Otomatik build - versiyon 12"
 }

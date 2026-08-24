@@ -49,14 +49,19 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
-      - name: Sabit Keystore'u Runner'a Yükle
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      # KESİN ÇÖZÜM: Base64 Kullanmadan Sabit Keystore Oluşturma
+      - name: Otomatik Sabit Keystore Oluştur
         run: |
-          set -euo pipefail
           mkdir -p ~/.android
-          # Boşluk ve satır başı karakterlerini silip güvenli çözüyoruz
-          echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -di > ~/.android/debug.keystore
+          keytool -genkey -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=OTA Dashboard, O=MyCompany, C=TR"
 
       - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon

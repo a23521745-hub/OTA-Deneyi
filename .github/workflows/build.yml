@@ -49,24 +49,10 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
-      # KESİN ÇÖZÜM: Base64 Kullanmadan Sabit Keystore Oluşturma
-      - name: Otomatik Sabit Keystore Oluştur
-        run: |
-          mkdir -p ~/.android
-          keytool -genkey -v \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=OTA Dashboard, O=MyCompany, C=TR"
-
       - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: APK Hazırla ve update.json İmzası Üret
+      - name: APK Hazırla ve RSA İmzası Üret
         env:
           PRIVATE_KEY: ${{ secrets._PRIVATEKEY_ }}
         run: |
@@ -74,13 +60,14 @@ jobs:
 
           SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
           test -f "$SRC_APK"
-
           cp "$SRC_APK" "$APK_NAME"
 
+          # Private key'i temp dosyaya yaz
           KEY_FILE="$RUNNER_TEMP/private_key.pem"
           printf '%s\n' "$PRIVATE_KEY" > "$KEY_FILE"
           trap 'rm -f "$KEY_FILE"' EXIT
 
+          # RSA-4096 ile imzala
           openssl dgst -sha256 -sign "$KEY_FILE" -out signature.sig "$APK_NAME"
           base64 -w0 signature.sig > signature.b64
           rm -f signature.sig
@@ -88,7 +75,7 @@ jobs:
       - name: update.json oluştur
         run: |
           SIGNATURE=$(cat signature.b64)
-          cat > update.json << JSONEOF
+          cat > update.json << 'JSONEOF'
           {
             "versionCode": ${{ steps.version.outputs.next }},
             "apkUrl": "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/${{ env.APK_NAME }}",
@@ -116,5 +103,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add app/build.gradle update.json
           git diff --cached --quiet && exit 0
-          git commit -m "chore: versionCode ${{ steps.version.outputs.next }}'e yükseltildi ve update.json güncellendi"
+          git commit -m "chore: versionCode ${{ steps.version.outputs.next }}'e yükseltildi"
           git push

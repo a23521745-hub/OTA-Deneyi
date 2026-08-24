@@ -2,19 +2,64 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- İnternet ve Ağ Durumu İçin Temel İzinler -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- İndirilen APK'yı Kaydetmek İçin Depolama İzinleri (Eski ve Yeni Sürümler İçin) -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- =========================
+         NETWORK
+         ========================= -->
 
-    <!-- Android 13+ (API 33) İçin DownloadManager Bildirim İzni -->
+    <!-- OTA manifest / GitHub Release erişimi -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Ağ bağlantısı durumunu kontrol etmek için -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+
+    <!-- =========================
+         STORAGE
+         ========================= -->
+
+    <!-- Android 9 ve altı için geriye dönük uyumluluk -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- Android 12 ve altı eski storage senaryoları -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+
+    <!-- =========================
+         NOTIFICATIONS
+         ========================= -->
+
+    <!-- Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Android 8.0+ (API 26) Dış Kaynaklı APK Kurulum İzni (OTA'nın Kalbi) -->
+
+    <!-- =========================
+         APK INSTALLATION
+         ========================= -->
+
+    <!-- OTA üzerinden indirilen APK'nın kurulum ekranını açabilmek için -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+
+    <!-- =========================
+         NFC / HIZLI AKTARIM
+         ========================= -->
+
+    <!-- NFC donanımı olmayan cihazlarda uygulama yine kurulabilsin -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
+    <!-- NFC erişimi -->
+    <uses-permission android:name="android.permission.NFC" />
+
+
+    <!-- =========================
+         APPLICATION
+         ========================= -->
 
     <application
         android:allowBackup="true"
@@ -23,29 +68,41 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OtaDashboard"
-        android:usesCleartextTraffic="true"> 
-        <!-- usesCleartextTraffic="true" eklendi: İleride HTTP (HTTPS olmayan) bir link kullanırsan uygulamanın çökmesini veya ağ hatası vermesini engeller. -->
-        
+        android:usesCleartextTraffic="false">
+
+        <!-- =========================
+             MAIN ACTIVITY
+             ========================= -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.OtaDashboard">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
-        <!-- Güvenli APK Kurulumu İçin FileProvider Tanımı -->
+
+        <!-- =========================
+             FILE PROVIDER
+             OTA APK INSTALLATION
+             ========================= -->
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
+
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
+
         </provider>
 
     </application>

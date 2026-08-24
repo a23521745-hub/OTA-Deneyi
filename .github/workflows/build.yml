@@ -49,13 +49,14 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
-      # KRİTİK ADIM: Sabit Keystore'u Runner'ın varsayılan konumuna yazıyoruz
       - name: Sabit Keystore'u Runner'a Yükle
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.android
-          echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+          # Boşluk ve satır başı karakterlerini silip güvenli çözüyoruz
+          echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -di > ~/.android/debug.keystore
 
       - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon

@@ -49,23 +49,31 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
+      # KRİTİK ADIM: Sabit Keystore'u Runner'ın varsayılan konumuna yazıyoruz
+      - name: Sabit Keystore'u Runner'a Yükle
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p ~/.android
+          echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+
       - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: APK'yı imzala
+      - name: APK Hazırla ve update.json İmzası Üret
         env:
           PRIVATE_KEY: ${{ secrets._PRIVATEKEY_ }}
         run: |
           set -euo pipefail
 
-          KEY_FILE="$RUNNER_TEMP/private_key.pem"
-          printf '%s\n' "$PRIVATE_KEY" > "$KEY_FILE"
-          trap 'rm -f "$KEY_FILE"' EXIT
-
           SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
           test -f "$SRC_APK"
 
           cp "$SRC_APK" "$APK_NAME"
+
+          KEY_FILE="$RUNNER_TEMP/private_key.pem"
+          printf '%s\n' "$PRIVATE_KEY" > "$KEY_FILE"
+          trap 'rm -f "$KEY_FILE"' EXIT
 
           openssl dgst -sha256 -sign "$KEY_FILE" -out signature.sig "$APK_NAME"
           base64 -w0 signature.sig > signature.b64

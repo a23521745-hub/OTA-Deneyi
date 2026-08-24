@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build and Sign APK
@@ -41,13 +44,15 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
           
           base64 -w0 /tmp/signature.sig > signature.b64
+          cp app/build/outputs/apk/debug/app-debug.apk OTA-Deneyi-v6.apk
 
-      - name: Release oluştur
+      - name: Release oluştur ve yükle
         uses: softprops/action-gh-release@v1
         with:
           tag_name: OTA-Deneyi-Realses
+          generate_release_notes: true
           files: |
-            app/build/outputs/apk/debug/app-debug.apk
+            OTA-Deneyi-v6.apk
             signature.b64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

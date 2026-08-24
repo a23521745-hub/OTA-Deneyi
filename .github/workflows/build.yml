@@ -28,37 +28,32 @@ jobs:
       - name: Debug APK oluştur
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Private key'i dosyaya kaydet
+      - name: Private key'i kaydet
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          echo "$PRIVATE_KEY" > private_key.pem
+          echo "$PRIVATE_KEY" > /tmp/private_key.pem
+          cat /tmp/private_key.pem
 
-      - name: APK'yı SHA256 ile imzala
+      - name: APK'yı imzala
         run: |
-          openssl dgst -sha256 -sign private_key.pem \
-            -out signature.sig \
+          openssl dgst -sha256 -sign /tmp/private_key.pem \
+            -out /tmp/signature.sig \
             app/build/outputs/apk/debug/app-debug.apk
           
-          base64 -w0 signature.sig > signature.b64
-          
+          base64 -w0 /tmp/signature.sig > signature.b64
           cat signature.b64
 
-      - name: İmzalı APK'yı yeniden adlandır
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk OTA-Deneyi-v6.apk
-          cp signature.b64 OTA-Deneyi-v6.sig
-
-      - name: Release oluştur ve APK'yı yükle
+      - name: Release oluştur
         uses: softprops/action-gh-release@v1
         with:
           tag_name: OTA-Deneyi-Realses
           files: |
-            OTA-Deneyi-v6.apk
-            OTA-Deneyi-v6.sig
+            app/build/outputs/apk/debug/app-debug.apk
+            signature.b64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Private key'i temizle
+      - name: Temizle
         if: always()
-        run: rm -f private_key.pem signature.sig signature.b64
+        run: rm -f /tmp/private_key.pem /tmp/signature.sig signature.b64

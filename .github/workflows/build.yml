@@ -9,9 +9,17 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APK_NAME: OTA-Deneyi.apk
+  RELEASE_TAG: OTA-Deneyi-Realses
+
 jobs:
-  build:
-    name: Build and Sign APK
+  build-sign-release:
+    name: Build, Sign & Release
     runs-on: ubuntu-latest
 
     steps:
@@ -28,66 +36,64 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
-      - name: Debug APK oluştur
+      - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Private key'i kaydet
+      - name: Sürüm kodunu oku
+        id: version
         run: |
-          cat > /tmp/private_key.pem << 'KEYEOF'
-          ${{ secrets._PRIVATEKEY_ }}
-          KEYEOF
+          CODE=$(grep -oP 'versionCode\s+\K[0-9]+' app/build.gradle)
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
 
       - name: APK'yı imzala
+        env:
+          PRIVATE_KEY: ${{ secrets._PRIVATEKEY_ }}
         run: |
-          openssl dgst -sha256 -sign /tmp/private_key.pem \
-            -out /tmp/signature.sig \
-            app/build/outputs/apk/debug/app-debug.apk
-          
-          base64 -w0 /tmp/signature.sig > signature.b64
-          cp app/build/outputs/apk/debug/app-debug.apk OTA-Deneyi-v6.apk
+          set -euo pipefail
 
-      - name: Release sil ve yenisini oluştur
-        uses: actions/github-script@v7
+          KEY_FILE="$RUNNER_TEMP/private_key.pem"
+          printf '%s\n' "$PRIVATE_KEY" > "$KEY_FILE"
+          trap 'rm -f "$KEY_FILE"' EXIT
+
+          SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
+          test -f "$SRC_APK"
+
+          cp "$SRC_APK" "$APK_NAME"
+
+          openssl dgst -sha256 -sign "$KEY_FILE" -out signature.sig "$APK_NAME"
+          base64 -w0 signature.sig > signature.b64
+          rm -f signature.sig
+
+      - name: update.json oluştur
+        run: |
+          SIGNATURE=$(cat signature.b64)
+          cat > update.json << JSONEOF
+          {
+            "versionCode": ${{ steps.version.outputs.code }},
+            "apkUrl": "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/${{ env.APK_NAME }}",
+            "signature": "$SIGNATURE",
+            "changelog": "Otomatik build - versiyon ${{ steps.version.outputs.code }}"
+          }
+          JSONEOF
+          cat update.json
+
+      - name: Release oluştur/güncelle
+        uses: softprops/action-gh-release@v2
         with:
-          script: |
-            const fs = require('fs');
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            
-            // Eski release'i bul
-            const releases = await github.rest.repos.listReleases({owner, repo});
-            const oldRelease = releases.data.find(r => r.tag_name === 'OTA-Deneyi-Realses');
-            
-            if (oldRelease) {
-              await github.rest.repos.deleteRelease({owner, repo, release_id: oldRelease.id});
-            }
-            
-            // Yeni release oluştur
-            const newRelease = await github.rest.repos.createRelease({
-              owner, repo,
-              tag_name: 'OTA-Deneyi-Realses',
-              name: 'OTA-Deneyi-v6',
-              body: 'Automatic release'
-            });
-            
-            // Dosyaları yükle
-            const apkData = fs.readFileSync('OTA-Deneyi-v6.apk');
-            const sigData = fs.readFileSync('signature.b64');
-            
-            await github.rest.repos.uploadReleaseAsset({
-              owner, repo,
-              release_id: newRelease.id,
-              name: 'OTA-Deneyi-v6.apk',
-              data: apkData
-            });
-            
-            await github.rest.repos.uploadReleaseAsset({
-              owner, repo,
-              release_id: newRelease.id,
-              name: 'signature.b64',
-              data: sigData
-            });
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "OTA-Deneyi v${{ steps.version.outputs.code }}"
+          make_latest: true
+          files: |
+            ${{ env.APK_NAME }}
+            signature.b64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Temizle
-        if: always()
-        run: rm -f /tmp/private_key.pem /tmp/signature.sig
+      - name: update.json'ı repoya commit'le
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: update.json otomatik güncellendi (v${{ steps.version.outputs.code }})"
+          git push

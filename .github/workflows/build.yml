@@ -26,6 +26,19 @@ jobs:
       - name: Checkout kodu
         uses: actions/checkout@v4
 
+      - name: versionCode'u oku ve artır
+        id: version
+        run: |
+          CURRENT=$(grep -oP 'versionCode\s+\K[0-9]+' app/build.gradle)
+          NEXT=$((CURRENT + 1))
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: versionCode'u güncelle
+        run: |
+          sed -i "s/versionCode ${{ steps.version.outputs.current }}/versionCode ${{ steps.version.outputs.next }}/" app/build.gradle
+          grep "versionCode" app/build.gradle
+
       - name: JDK 17 kur
         uses: actions/setup-java@v4
         with:
@@ -38,12 +51,6 @@ jobs:
 
       - name: Debug APK derle
         run: ./gradlew assembleDebug --stacktrace --no-daemon
-
-      - name: Sürüm kodunu oku
-        id: version
-        run: |
-          CODE=$(grep -oP 'versionCode\s+\K[0-9]+' app/build.gradle)
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
 
       - name: APK'yı imzala
         env:
@@ -69,10 +76,10 @@ jobs:
           SIGNATURE=$(cat signature.b64)
           cat > update.json << JSONEOF
           {
-            "versionCode": ${{ steps.version.outputs.code }},
+            "versionCode": ${{ steps.version.outputs.next }},
             "apkUrl": "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/${{ env.APK_NAME }}",
             "signature": "$SIGNATURE",
-            "changelog": "Otomatik build - versiyon ${{ steps.version.outputs.code }}"
+            "changelog": "Otomatik build - versiyon ${{ steps.version.outputs.next }}"
           }
           JSONEOF
           cat update.json
@@ -81,7 +88,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          name: "OTA-Deneyi v${{ steps.version.outputs.code }}"
+          name: "OTA-Deneyi v${{ steps.version.outputs.next }}"
           make_latest: true
           files: |
             ${{ env.APK_NAME }}
@@ -89,11 +96,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: update.json'ı repoya commit'le
+      - name: versionCode değişikliklerini commit'le
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add update.json
+          git add app/build.gradle update.json
           git diff --cached --quiet && exit 0
-          git commit -m "chore: update.json otomatik güncellendi (v${{ steps.version.outputs.code }})"
+          git commit -m "chore: versionCode ${{ steps.version.outputs.next }}'e yükseltildi ve update.json güncellendi"
           git push

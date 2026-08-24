@@ -1,13 +1,10 @@
-name: Build Debug APK
+name: Build, Sign and Release APK
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   build:
@@ -28,80 +25,40 @@ jobs:
       - name: Gradle izinlerini ayarla
         run: chmod +x ./gradlew
 
-      - name: Gradle versiyonunu göster
-        run: ./gradlew --version
-
       - name: Debug APK oluştur
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Keystore oluştur
+      - name: Private key'i dosyaya kaydet
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          set -e
+          echo "$PRIVATE_KEY" > private_key.pem
 
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ota-release.jks"
-
-          test -s "$RUNNER_TEMP/ota-release.jks"
-
-          echo "Keystore hazır."
-
-      - name: APK'yı imzala
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: APK'yı SHA256 ile imzala
         run: |
-          set -e
+          openssl dgst -sha256 -sign private_key.pem \
+            -out signature.sig \
+            app/build/outputs/apk/debug/app-debug.apk
+          
+          base64 -w0 signature.sig > signature.b64
+          
+          cat signature.b64
 
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" \
-            -type f \
-            -name apksigner \
-            | sort -V \
-            | tail -n 1)
-
-          test -n "$APKSIGNER"
-
-          "$APKSIGNER" sign \
-            --ks "$RUNNER_TEMP/ota-release.jks" \
-            --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass "env:KEYSTORE_PASSWORD" \
-            --key-pass "env:KEY_PASSWORD" \
-            --out "$GITHUB_WORKSPACE/OTA-Deneyi-signed.apk" \
-            "$GITHUB_WORKSPACE"/app/build/outputs/apk/debug/*.apk
-
-      - name: APK imzasını doğrula
+      - name: İmzalı APK'yı yeniden adlandır
         run: |
-          set -e
+          cp app/build/outputs/apk/debug/app-debug.apk OTA-Deneyi-v6.apk
+          cp signature.b64 OTA-Deneyi-v6.sig
 
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" \
-            -type f \
-            -name apksigner \
-            | sort -V \
-            | tail -n 1)
-
-          "$APKSIGNER" verify \
-            --verbose \
-            --print-certs \
-            "$GITHUB_WORKSPACE/OTA-Deneyi-signed.apk"
-
-      - name: SHA-256 oluştur
-        run: |
-          sha256sum \
-            "$GITHUB_WORKSPACE/OTA-Deneyi-signed.apk" \
-            > "$GITHUB_WORKSPACE/OTA-Deneyi-signed.apk.sha256"
-
-          cat "$GITHUB_WORKSPACE/OTA-Deneyi-signed.apk.sha256"
-
-      - name: İmzalı APK'yı artifact olarak yükle
-        uses: actions/upload-artifact@v4
+      - name: Release oluştur ve APK'yı yükle
+        uses: softprops/action-gh-release@v1
         with:
-          name: ota-deneyi-signed-apk
-          path: |
-            OTA-Deneyi-signed.apk
-            OTA-Deneyi-signed.apk.sha256
-          if-no-files-found: error
+          tag_name: OTA-Deneyi-Realses
+          files: |
+            OTA-Deneyi-v6.apk
+            OTA-Deneyi-v6.sig
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Keystore'u temizle
+      - name: Private key'i temizle
         if: always()
-        run: rm -f "$RUNNER_TEMP/ota-release.jks"
+        run: rm -f private_key.pem signature.sig signature.b64

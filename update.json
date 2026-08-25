@@ -1,9 +1,10 @@
 {
-  "versionCode": 14,
-  "versionName": "v14",
-  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-Realses/OTA-Deneyi.apk",
-  "signature": "$SIGNATURE",
-  "changelog": "Otomatik build #82 - versiyon 14",
-  "releaseDate": "$TIMESTAMP",
-  "size": "18M"
+  "versionCode": 15,
+  "versionName": "v15",
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v15/OTA-Deneyi.apk",
+  "signature": "PER9Gxeo5BblTWhqjZSxazi5Pal8wkhcAwTlbADNpiJ2ufuwu1ziA74jSrA8edqwb8QjgfEZCgz6Gygi6wqmNRwD6S2a10ri4gZF6I4zy4XMWHFjDDJqVwFopJdppbmGE1In+3x17l8DsNtFPp9As3kCBQ4u/Ojd8C1nbxbxVYFEUnw9EPqkTltdC1eJzXcShojmOMYwMElNeNt5Zm59ID7u6ZZD/uNCNEcadLkLMvZPetDsxBO6k+faqRH0HXFLztCOBhg6/pBq9eMkY4LOsgLCSkEnb38aXoasZscNgj7192x9oSN0TMGgspLJtYvXgT42/tm+p0GBnE9a97lBB2+mmcyskC2M3Sn2KsYuE4N078Ce+V/ozCTPB9cfdRJf4i0wrHo+lCpWSgHTHUtE737t4187CrlI7Jl24+gk26ca6DHND07rxX1jVmfnxXRBqxQkP31V4TInadB6NxXIoyPFT7QxuwI4IsJoXUfMZWaunaQfyZXQdd9Yavqa7oK1uBUs8i8Wg5l1pEGn+Jb1tIc6AR01J5Yh4bZGBSdu/POFwU6tRzFDX0iVzJii8vj1d88Vo+4IFkGSVnH4PVnhVrZ3mZVMphhPvhWq4Y5Tnd2BaacdaL+TfdRY1NLFM1WRSDVI8jUpbym+KU3Rdo7RRtUHypvvpPICjttSEBWjKiU=",
+  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v15/public_key.pem",
+  "changelog": "Otomatik build #83 - Secure OTA v15",
+  "releaseDate": "2026-08-25T20:21:33Z",
+  "size": "13M"
 }

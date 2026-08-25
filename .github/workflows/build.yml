@@ -16,92 +16,188 @@ concurrency:
 env:
   APK_NAME: OTA-Deneyi.apk
   RELEASE_TAG: OTA-Deneyi-Realses
+  GRADLE_OPTS: "-Xmx2048m"
 
 jobs:
   build-sign-release:
     name: Build, Sign & Release
     runs-on: ubuntu-latest
+    environment: release
+
+    outputs:
+      version_code: ${{ steps.version.outputs.next }}
+      apk_size: ${{ steps.apk_info.outputs.size }}
 
     steps:
-      - name: Checkout kodu
+      - name: 📥 Checkout kodu
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: versionCode'u oku ve artır
+      - name: 📊 versionCode'u oku ve artır
         id: version
         run: |
           CURRENT=$(grep -oP 'versionCode\s+\K[0-9]+' app/build.gradle)
           NEXT=$((CURRENT + 1))
           echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
           echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "✓ versionCode: $CURRENT → $NEXT"
 
-      - name: versionCode'u güncelle
+      - name: 🔄 versionCode'u güncelle
         run: |
           sed -i "s/versionCode ${{ steps.version.outputs.current }}/versionCode ${{ steps.version.outputs.next }}/" app/build.gradle
-          grep "versionCode" app/build.gradle
+          grep -n "versionCode" app/build.gradle
 
-      - name: JDK 17 kur
+      - name: ☕ JDK 17 kur
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
-      - name: Gradle izinlerini ayarla
-        run: chmod +x ./gradlew
+      - name: 🔨 Gradle izinlerini ayarla
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --version
 
-      - name: Debug APK derle
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: 🏗️ Debug APK derle
+        run: |
+          ./gradlew clean assembleDebug \
+            --stacktrace \
+            --no-daemon \
+            --info 2>&1 | tee build.log
+          echo "✓ Build başarılı"
 
-      - name: APK Hazırla ve RSA İmzası Üret
+      - name: 📦 APK bilgilerini al
+        id: apk_info
+        run: |
+          SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n1)
+          if [ ! -f "$SRC_APK" ]; then
+            echo "❌ APK dosyası bulunamadı!"
+            find app/build/outputs -type f -name '*.apk'
+            exit 1
+          fi
+          SIZE=$(du -h "$SRC_APK" | cut -f1)
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "✓ APK bulundu: $SRC_APK ($SIZE)"
+
+      - name: 🔐 Private Key doğrula ve imza oluştur
+        id: sign
         env:
           PRIVATE_KEY: ${{ secrets._PRIVATEKEY_ }}
         run: |
           set -euo pipefail
 
-          SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
-          test -f "$SRC_APK"
-          cp "$SRC_APK" "$APK_NAME"
-
-          # Private key'i temp dosyaya yaz
+          # Key dosyasını güvenli şekilde oluştur
           KEY_FILE="$RUNNER_TEMP/private_key.pem"
-          printf '%s\n' "$PRIVATE_KEY" > "$KEY_FILE"
-          trap 'rm -f "$KEY_FILE"' EXIT
+          echo "$PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
 
-          # RSA-4096 ile imzala
-          openssl dgst -sha256 -sign "$KEY_FILE" -out signature.sig "$APK_NAME"
+          # Key'i doğrula
+          if ! openssl pkey -in "$KEY_FILE" -text -noout > /dev/null 2>&1; then
+            echo "❌ Private key geçersiz!"
+            rm -f "$KEY_FILE"
+            exit 1
+          fi
+          echo "✓ Private key doğrulandı"
+
+          # APK'yı bul ve kopyala
+          SRC_APK=$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n1)
+          cp "$SRC_APK" "$APK_NAME"
+          echo "✓ APK kopyalandı: $APK_NAME"
+
+          # RSA-4096 SHA256 ile imzala
+          openssl dgst -sha256 -sign "$KEY_FILE" \
+            -out signature.sig "$APK_NAME"
+
+          # Base64 encode
           base64 -w0 signature.sig > signature.b64
-          rm -f signature.sig
 
-      - name: update.json oluştur
+          # Sonuçları göster
+          echo "✓ İmza oluşturuldu"
+          ls -lh signature.b64 signature.sig "$APK_NAME"
+
+          # Cleanup
+          rm -f "$KEY_FILE" signature.sig
+          trap 'rm -f "$KEY_FILE" signature.sig' EXIT
+
+      - name: 📄 update.json oluştur
+        id: manifest
         run: |
           SIGNATURE=$(cat signature.b64)
+          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
           cat > update.json << 'JSONEOF'
           {
             "versionCode": ${{ steps.version.outputs.next }},
+            "versionName": "v${{ steps.version.outputs.next }}",
             "apkUrl": "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/${{ env.APK_NAME }}",
             "signature": "$SIGNATURE",
-            "changelog": "Otomatik build - versiyon ${{ steps.version.outputs.next }}"
+            "changelog": "Otomatik build #${{ github.run_number }} - versiyon ${{ steps.version.outputs.next }}",
+            "releaseDate": "$TIMESTAMP",
+            "size": "${{ steps.apk_info.outputs.size }}"
           }
           JSONEOF
-          cat update.json
 
-      - name: Release oluştur/güncelle
+          echo "✓ update.json oluşturuldu:"
+          cat update.json
+          echo "md5sum: $(md5sum update.json)"
+
+      - name: 🚀 Release oluştur/güncelle
+        id: release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: "OTA-Deneyi v${{ steps.version.outputs.next }}"
+          body: |
+            **Otomatik Build Release**
+            - **Versiyon:** ${{ steps.version.outputs.next }}
+            - **Build ID:** ${{ github.run_number }}
+            - **Tarih:** ${{ github.event.head_commit.timestamp }}
+            - **APK Boyutu:** ${{ steps.apk_info.outputs.size }}
+            - **Commit:** ${{ github.sha }}
           make_latest: true
+          draft: false
+          prerelease: false
           files: |
             ${{ env.APK_NAME }}
             signature.b64
+            update.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: versionCode değişikliklerini commit'le
+      - name: 💾 Değişiklikleri repo'ya commit'le
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add app/build.gradle update.json
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: versionCode ${{ steps.version.outputs.next }}'e yükseltildi"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "ℹ️ Değişiklik yok"
+            exit 0
+          fi
+
+          git commit -m "chore(release): v${{ steps.version.outputs.next }} - otomatik build
+
+          - versionCode yükseltildi
+          - update.json güncellendi
+          - İmza doğrulandı
+          - Build ID: ${{ github.run_number }}"
+
+          git push origin main || {
+            echo "⚠️ Push başarısız, rebase deniyor..."
+            git pull --rebase origin main
+            git push origin main
+          }
+
+      - name: ✅ Build Özeti
+        run: |
+          echo "════════════════════════════════════"
+          echo "✓ Build Başarılı"
+          echo "════════════════════════════════════"
+          echo "Versiyon: ${{ steps.version.outputs.next }}"
+          echo "APK: ${{ env.APK_NAME }}"
+          echo "Boyut: ${{ steps.apk_info.outputs.size }}"
+          echo "Release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}"
+          echo "════════════════════════════════════"

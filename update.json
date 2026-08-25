@@ -1,6 +1,9 @@
 {
-  "versionCode": 13,
+  "versionCode": 14,
+  "versionName": "v14",
   "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-Realses/OTA-Deneyi.apk",
   "signature": "$SIGNATURE",
-  "changelog": "Otomatik build - versiyon 13"
+  "changelog": "Otomatik build #82 - versiyon 14",
+  "releaseDate": "$TIMESTAMP",
+  "size": "18M"
 }

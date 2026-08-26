@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.otadashboard.health.HealthViewModel
 import com.example.otadashboard.ota_updater.ApkDownloader
 import com.example.otadashboard.ota_updater.OtaChecker
 import com.example.otadashboard.ota_updater.UpdateInfo
@@ -39,6 +40,7 @@ import com.example.otadashboard.security.ClamAvEngine
 import com.example.otadashboard.security.ScanLogDao
 import com.example.otadashboard.security.ScanLogEntity
 import com.example.otadashboard.security.SecurityChecker
+import com.example.otadashboard.ui.health.HealthDashboardScreen
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -139,6 +141,7 @@ fun MainScreen(
     var isBusy by remember { mutableStateOf(false) }
     var securityScore by remember { mutableIntStateOf(100) }
 
+    val healthViewModel = remember { HealthViewModel(context) }
     val logs by logDao.getAllLogs().collectAsState(initial = emptyList())
 
     Column(
@@ -148,7 +151,7 @@ fun MainScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         IosSegmentedControl(
-            items = listOf("Güvenlik & Loglar", "OTA Güncelleme"),
+            items = listOf("Güvenlik", "OTA", "Cihaz Sağlığı"),
             selectedIndex = selectedTab,
             onSegmentSelected = { selectedTab = it }
         )
@@ -170,16 +173,10 @@ fun MainScreen(
                     onScanStart = {
                         isBusy = true
                         coroutineScope.launch(Dispatchers.IO) {
-                            // 1. Sistem güvenlik denetimi
                             SecurityChecker.scanDeviceAndLog(context, logDao)
-                            
-                            // 2. ClamAV veritabanını internetten güncelle
                             downloadClamAvDb(context, logDao)
-                            
-                            // 3. Gerçek ClamAV Hash taraması çalıştır
                             val threatCount = executeRealClamAvScan(context, logDao)
-                            
-                            // 4. Güvenlik skorunu hesapla
+
                             withContext(Dispatchers.Main) {
                                 securityScore = if (threatCount > 0) maxOf(0, 100 - (threatCount * 30)) else 100
                                 isBusy = false
@@ -198,6 +195,7 @@ fun MainScreen(
                     publicKeyPem = publicKeyPem,
                     logDao = logDao
                 )
+                2 -> HealthDashboardScreen(viewModel = healthViewModel)
             }
         }
     }
@@ -240,9 +238,6 @@ fun IosSegmentedControl(
     }
 }
 
-/**
- * ONLINE CLAMAV İMZA VERİTABANI İNDİRİCİ
- */
 private suspend fun downloadClamAvDb(context: Context, logDao: ScanLogDao) = withContext(Dispatchers.IO) {
     val dbFile = File(context.filesDir, "clamav_db.txt")
     val dbUrl = "https://raw.githubusercontent.com/MaintainTeam/HypatiaDatabases/main/daily.hsb"
@@ -267,9 +262,6 @@ private suspend fun downloadClamAvDb(context: Context, logDao: ScanLogDao) = wit
     }
 }
 
-/**
- * GERÇEK CLAMAV MOTORU ÇAĞRISI
- */
 private suspend fun executeRealClamAvScan(context: Context, logDao: ScanLogDao): Int {
     logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Engine (GPLv3) başlatılıyor..."))
 
@@ -320,7 +312,6 @@ fun VirusScanScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Dynamic Security Score Panel
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -395,7 +386,6 @@ fun VirusScanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Terminal Log Console
         Surface(
             modifier = Modifier
                 .fillMaxWidth()

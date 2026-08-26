@@ -316,7 +316,7 @@ fun VirusScanScreen(
 
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
-                            progress = { if (isBusy) 0.5f else score / 100f },
+                            progress =  if (isBusy) 0.5f else (score / 100f),
                             modifier = Modifier.size(42.dp),
                             color = if (isBusy) Color(0xFFFF9F0A) else if (score < 100) Color(0xFFFF453A) else Color(0xFF30D158),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant

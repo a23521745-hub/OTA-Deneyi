@@ -13,7 +13,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,11 +35,11 @@ import com.example.otadashboard.ota_updater.ApkDownloader
 import com.example.otadashboard.ota_updater.OtaChecker
 import com.example.otadashboard.ota_updater.UpdateInfo
 import com.example.otadashboard.security.AppDatabase
+import com.example.otadashboard.security.ClamAvEngine
 import com.example.otadashboard.security.ScanLogDao
 import com.example.otadashboard.security.ScanLogEntity
 import com.example.otadashboard.security.SecurityChecker
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -135,6 +134,7 @@ fun MainScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var isBusy by remember { mutableStateOf(false) }
+    var securityScore by remember { mutableIntStateOf(100) }
 
     val logs by logDao.getAllLogs().collectAsState(initial = emptyList())
 
@@ -162,13 +162,20 @@ fun MainScreen(
             when (targetTab) {
                 0 -> VirusScanScreen(
                     isBusy = isBusy,
+                    score = securityScore,
                     logs = logs,
                     onScanStart = {
                         isBusy = true
                         coroutineScope.launch(Dispatchers.IO) {
+                            // 1. Sistem Kontrolü
                             SecurityChecker.scanDeviceAndLog(context, logDao)
-                            runClamAvScan(logDao)
+                            
+                            // 2. Gerçek ClamAV Hash Taraması
+                            val threatCount = executeRealClamAvScan(context, logDao)
+                            
+                            // 3. Skor Hesaplama
                             withContext(Dispatchers.Main) {
+                                securityScore = if (threatCount > 0) maxOf(0, 100 - (threatCount * 30)) else 100
                                 isBusy = false
                             }
                         }
@@ -176,6 +183,7 @@ fun MainScreen(
                     onClearLogs = {
                         coroutineScope.launch(Dispatchers.IO) {
                             logDao.clearLogs()
+                            withContext(Dispatchers.Main) { securityScore = 100 }
                         }
                     }
                 )
@@ -226,21 +234,46 @@ fun IosSegmentedControl(
     }
 }
 
-private suspend fun runClamAvScan(logDao: ScanLogDao) {
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Engine başlatılıyor..."))
-    delay(400)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Veritabanı doğrulandı: 8,642,109 aktif imza."))
-    delay(500)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Bellek içi INSTREAM paket taraması aktif."))
-    delay(600)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Taranan: /system/app/ framework APKs [Temiz]"))
-    delay(300)
-    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Tarama Başarıyla Tamamlandı: Tehdit = 0"))
+/**
+ * GERÇEK CLAMAV MOTORU ÇAĞRISI
+ */
+private suspend fun executeRealClamAvScan(context: Context, logDao: ScanLogDao): Int {
+    logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Engine (GPLv3) başlatılıyor..."))
+
+    val engine = ClamAvEngine()
+    val localDbFile = java.io.File(context.filesDir, "clamav_db.txt")
+
+    val inputStream: java.io.InputStream = if (localDbFile.exists()) {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Cihazdaki yerel veritabanı kullanılıyor."))
+        java.io.FileInputStream(localDbFile)
+    } else {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "WARN", message = "Yerel veritabanı yok, gömülü assets/clamav_db.txt yükleniyor."))
+        try {
+            context.assets.open("clamav_db.txt")
+        } catch (e: Exception) {
+            logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "ERROR", message = "Assets veritabanı bulunamadı!"))
+            return 0
+        }
+    }
+
+    val results = engine.scanInstalledApps(context, inputStream) { level, message ->
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = level, message = message))
+    }
+
+    val threats = results.count { it.isMalicious }
+    if (threats == 0) {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Tarama Tamamlandı: Sistem Temiz!"))
+    } else {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "CRITICAL", message = "KRİTİK UYARI: $threats Adet Tehdit Tespit Edildi!"))
+    }
+
+    return threats
 }
 
 @Composable
 fun VirusScanScreen(
     isBusy: Boolean,
+    score: Int,
     logs: List<ScanLogEntity>,
     onScanStart: () -> Unit,
     onClearLogs: () -> Unit
@@ -254,6 +287,7 @@ fun VirusScanScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Dynamic Security Score Panel
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -268,24 +302,29 @@ fun VirusScanScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Güvenlik Motoru",
+                            text = "Güvenlik Skoru",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
-                            text = if (isBusy) "Aktif Taranıyor..." else "Sistem Korumada",
+                            text = if (isBusy) "Analiz Ediliyor..." else if (score == 100) "%100 Korumalı" else "%$score Tehdit Riski!",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isBusy) Color(0xFFFF9F0A) else Color(0xFF30D158)
+                            color = if (isBusy) Color(0xFFFF9F0A) else if (score < 100) Color(0xFFFF453A) else Color(0xFF30D158)
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(if (isBusy) Color(0xFFFF9F0A) else Color(0xFF30D158))
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { if (isBusy) 0.5f else score / 100f },
+                            modifier = Modifier.size(42.dp),
+                            color = if (isBusy) Color(0xFFFF9F0A) else if (score < 100) Color(0xFFFF453A) else Color(0xFF30D158),
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        if (!isBusy) {
+                            Text(text = "$score", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -323,6 +362,7 @@ fun VirusScanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Terminal Log Console
         Surface(
             modifier = Modifier
                 .fillMaxWidth()

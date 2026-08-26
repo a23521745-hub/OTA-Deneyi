@@ -2,19 +2,17 @@ package com.example.otadashboard.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
-import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -25,16 +23,15 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.example.otadashboard.MainActivity
-import com.example.otadashboard.R
 
 class OtaWidget : GlanceAppWidget() {
 
-    override async fun provideGlance(context: Context, id: GlanceId) {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             OtaWidgetContent()
         }
@@ -43,11 +40,11 @@ class OtaWidget : GlanceAppWidget() {
     @Composable
     private fun OtaWidgetContent() {
         // iOS Koyu Tema Renk Paleti
-        val cardBackground = ColorProvider(0xFF1C1C1E)
-        val primaryBlue = ColorProvider(0xFF0A84FF)
-        val successGreen = ColorProvider(0xFF30D158)
-        val textSecondary = ColorProvider(0xFF8E8E93)
-        val textPrimary = ColorProvider(0xFFFFFFFF)
+        val cardBackground = Color(0xFF1C1C1E)
+        val primaryBlue = Color(0xFF0A84FF)
+        val successGreen = Color(0xFF30D158)
+        val textSecondary = ColorProvider(Color(0xFF8E8E93))
+        val textPrimary = ColorProvider(Color(0xFFFFFFFF))
 
         Box(
             modifier = GlanceModifier

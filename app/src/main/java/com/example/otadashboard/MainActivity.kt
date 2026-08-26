@@ -39,6 +39,9 @@ import com.example.otadashboard.security.ClamAvEngine
 import com.example.otadashboard.security.ScanLogDao
 import com.example.otadashboard.security.ScanLogEntity
 import com.example.otadashboard.security.SecurityChecker
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -167,13 +170,16 @@ fun MainScreen(
                     onScanStart = {
                         isBusy = true
                         coroutineScope.launch(Dispatchers.IO) {
-                            // 1. Sistem Kontrolü
+                            // 1. Sistem güvenlik denetimi
                             SecurityChecker.scanDeviceAndLog(context, logDao)
                             
-                            // 2. Gerçek ClamAV Hash Taraması
+                            // 2. ClamAV veritabanını internetten güncelle
+                            downloadClamAvDb(context, logDao)
+                            
+                            // 3. Gerçek ClamAV Hash taraması çalıştır
                             val threatCount = executeRealClamAvScan(context, logDao)
                             
-                            // 3. Skor Hesaplama
+                            // 4. Güvenlik skorunu hesapla
                             withContext(Dispatchers.Main) {
                                 securityScore = if (threatCount > 0) maxOf(0, 100 - (threatCount * 30)) else 100
                                 isBusy = false
@@ -235,16 +241,43 @@ fun IosSegmentedControl(
 }
 
 /**
+ * ONLINE CLAMAV İMZA VERİTABANI İNDİRİCİ
+ */
+private suspend fun downloadClamAvDb(context: Context, logDao: ScanLogDao) = withContext(Dispatchers.IO) {
+    val dbFile = File(context.filesDir, "clamav_db.txt")
+    val dbUrl = "https://raw.githubusercontent.com/MaintainTeam/HypatiaDatabases/main/daily.hsb"
+
+    try {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Güncel ClamAV veritabanı indiriliyor..."))
+        val url = URL(dbUrl)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 12000
+        connection.readTimeout = 12000
+
+        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+            connection.inputStream.use { input ->
+                dbFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Güncel imza veritabanı cihaza kaydedildi."))
+        }
+    } catch (e: Exception) {
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "WARN", message = "Veritabanı indirilemedi, yerel dosya kullanılacak: ${e.localizedMessage}"))
+    }
+}
+
+/**
  * GERÇEK CLAMAV MOTORU ÇAĞRISI
  */
 private suspend fun executeRealClamAvScan(context: Context, logDao: ScanLogDao): Int {
     logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "ClamAV Engine (GPLv3) başlatılıyor..."))
 
     val engine = ClamAvEngine()
-    val localDbFile = java.io.File(context.filesDir, "clamav_db.txt")
+    val localDbFile = File(context.filesDir, "clamav_db.txt")
 
     val inputStream: java.io.InputStream = if (localDbFile.exists()) {
-        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Cihazdaki yerel veritabanı kullanılıyor."))
+        logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "INFO", message = "Cihazdaki yerel veritabanı yükleniyor."))
         java.io.FileInputStream(localDbFile)
     } else {
         logDao.insertLog(ScanLogEntity(tag = "CLAMAV", level = "WARN", message = "Yerel veritabanı yok, gömülü assets/clamav_db.txt yükleniyor."))
@@ -316,7 +349,7 @@ fun VirusScanScreen(
 
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
-                            progress =  if (isBusy) 0.5f else (score / 100f),
+                            progress = if (isBusy) 0.5f else (score / 100f),
                             modifier = Modifier.size(42.dp),
                             color = if (isBusy) Color(0xFFFF9F0A) else if (score < 100) Color(0xFFFF453A) else Color(0xFF30D158),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant

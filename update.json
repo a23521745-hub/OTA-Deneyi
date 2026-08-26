@@ -1,12 +1,12 @@
 {
-  "versionCode": 17,
-  "versionName": "v17",
-  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v17/OTA-Deneyi.apk",
-  "signature": "$SIGNATURE",
-  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v17/public_key.pem",
+  "versionCode": 18,
+  "versionName": "v18",
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v18/OTA-Deneyi.apk",
+  "signature": "T4BFRNefONNQOVA9uTrjKoOfRqeGGL/UvRPdsUMtfk1TF3NtIW/ZcfKxePl174xhI6hUaBdJ3zJxuHNEGvWrnH9nLUMhK27HPyfcPdy2q4VXAX0kh/wt8dM7vyl4qc3FtSnpoGPFXfp9l2asafJBbMo8B9iBIJ/+SI3sbWyoI4fS2daKaelsCbFh5QkHzKJcJrVCymbvNceU2XbKXkpZ3SX0lsXrU1Xead4vsPXNtECServE2qfpEXqE5E0SrvKbnmQcLw87QR9CbsJ4G8b4HFQ9DKh5ssyRrfQ70tRaeLaJ0GCaioWLujlnBXZ4dtPQ9lerMzF1rrBCgaswcgJj4tQpf69Cneo8AURAoMXs1fVcImpMySzrAZCYmqa9uAIOJHTATpNNcvjbuRc6c2ik/b6eF3yXUrLRxs1CfavsocXxQpg7obUuqVT64Uc2yU1N1U4OI8IPUeH1WBNLBCRRCLLfhsS5SD+qvG5FGEDM3t/4WXe3bict7sRdL68lkbgdJAKflvhg/ZnOo1Dkx5csIIl7eCxhj/jPhxqzWZyIfAh5V38D+25+wy7vRxks1eUzCZAhacRcbuAz5+2jd4ZjlwRh9RNQKFVgoNLm3VsIUKqcsq+Y4qtPg366PLtkGb0VoYwvfZoHf9AdPuTPkPdo6Do0aI8LOOqd7wU3FSkvhlw=",
+  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v18/public_key.pem",
   "signatureAlgorithm": "RSA-4096 SHA256",
-  "changelog": "Otomatik Build #86 - Secure OTA v17",
-  "releaseDate": "$TIMESTAMP",
+  "changelog": "Otomatik Build #87 - OTA Update v18",
+  "releaseDate": "2026-08-26T11:28:24Z",
   "size": "13M",
-  "sha256": "cafd29d8a006e70cf42f88dffe1de896d140e5e4155bd0564cd28bfdf83193ba"
+  "sha256": "d155c5893ec4a83f12feffb2f14436df7ffd07c39fc275de49bc17709e377f28"
 }

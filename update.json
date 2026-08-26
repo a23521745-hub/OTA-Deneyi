@@ -1,12 +1,12 @@
 {
-  "versionCode": 16,
-  "versionName": "v16",
-  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v16/OTA-Deneyi.apk",
+  "versionCode": 17,
+  "versionName": "v17",
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v17/OTA-Deneyi.apk",
   "signature": "$SIGNATURE",
-  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v16/public_key.pem",
+  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/OTA-Deneyi-v17/public_key.pem",
   "signatureAlgorithm": "RSA-4096 SHA256",
-  "changelog": "Otomatik Build #85 - Secure OTA v16",
+  "changelog": "Otomatik Build #86 - Secure OTA v17",
   "releaseDate": "$TIMESTAMP",
   "size": "13M",
-  "sha256": "3824567c14e5ace4540a9e7cdc11344159516db90be1838b04763cbf13803979"
+  "sha256": "cafd29d8a006e70cf42f88dffe1de896d140e5e4155bd0564cd28bfdf83193ba"
 }

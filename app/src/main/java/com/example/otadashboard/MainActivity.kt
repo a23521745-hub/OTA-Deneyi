@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
             OtaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceVariant // iOS Deep Dark Background
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     MainScreen(
                         updateJsonUrl = updateJsonUrl,
@@ -89,15 +89,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// iOS & Notion Stil Renk Paleti
 @Composable
 fun OtaTheme(content: @Composable () -> Unit) {
-    // Material You 3 Renk Paleti
     val darkColors = darkColorScheme(
-        primary = Color(0xFF0A84FF),      // iOS Blue
-        surface = Color(0xFF1C1C1E),      // iOS Card Surface
-        surfaceVariant = Color(0xFF2C2C2E),// iOS Elevated Surface
-        background = Color(0xFF0F0F11),   // Ultra Deep Black
+        primary = Color(0xFF0A84FF),
+        surface = Color(0xFF1C1C1E),
+        surfaceVariant = Color(0xFF2C2C2E),
+        background = Color(0xFF0F0F11),
         onPrimary = Color.White,
         onSurface = Color(0xFFF2F2F7),
         onSurfaceVariant = Color(0xFF8E8E93)
@@ -146,7 +144,6 @@ fun MainScreen(
             .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Notion / iOS Segmented Control TabBar
         IosSegmentedControl(
             items = listOf("Güvenlik & Loglar", "OTA Güncelleme"),
             selectedIndex = selectedTab,
@@ -250,7 +247,6 @@ fun VirusScanScreen(
 ) {
     val listState = rememberLazyListState()
 
-    // Log eklendikçe otomatik en alta kaydır
     LaunchedEffect(logs.size) {
         if (logs.isNotEmpty()) {
             listState.animateScrollToItem(logs.size - 1)
@@ -258,7 +254,6 @@ fun VirusScanScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Kontrol Paneli Kartı
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -285,7 +280,6 @@ fun VirusScanScreen(
                         )
                     }
 
-                    // Yanıp sönen yeşil/turuncu koruma noktası
                     Box(
                         modifier = Modifier
                             .size(12.dp)
@@ -329,13 +323,12 @@ fun VirusScanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Telegram / Monospace Terminal Konsolu
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
             shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF000000), // Pure Black Terminal Background
+            color = Color(0xFF000000),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
@@ -404,7 +397,7 @@ fun VirusScanScreen(
             }
         }
     }
-} // Eksik olan } burada eklendi
+}
 
 @Composable
 fun UpdateScreen(
@@ -466,7 +459,6 @@ fun UpdateScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Durum Kartı
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -489,7 +481,6 @@ fun UpdateScreen(
             }
         }
 
-        // Güncelleme Detay Kartı (Notion Changelog Stili)
         updateInfoState?.let { info ->
             if (info.hasUpdate) {
                 Surface(
@@ -539,7 +530,6 @@ fun UpdateScreen(
             }
         }
 
-        // İndirme İlerleme Alanı
         if (isDownloading) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 LinearProgressIndicator(
@@ -564,13 +554,11 @@ fun UpdateScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Aksiyon Butonları
         if (updateInfoState?.hasUpdate == true) {
             Button(
                 onClick = {
                     val info = updateInfoState ?: return@Button
 
-                    // Android 8.0+ Bilinmeyen Kaynaklar (Unknown Sources) İzin Kontrolü
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         if (!context.packageManager.canRequestPackageInstalls()) {
                             Toast.makeText(

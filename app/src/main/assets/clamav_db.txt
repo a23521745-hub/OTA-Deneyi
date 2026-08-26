@@ -1,0 +1,3 @@
+# ClamAV Hash Database Spec (SHA256:SIZE:NAME)
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:0:Android.Test.EmptyFile
+44d88612fea8a8f36de82e1278abb02f0e21240a93d3145b1e5a853d50850938:1024:Android.Eicar.Test.Virus

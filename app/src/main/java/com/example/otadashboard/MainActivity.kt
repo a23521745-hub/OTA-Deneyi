@@ -4,23 +4,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.example.otadashboard.security.AppDatabase
 import com.example.otadashboard.ui.MainScreen
+import com.example.otadashboard.ui.theme.OtaDashboardTheme
 
 class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Edge-to-edge ekran tasarımı
+        enableEdgeToEdge()
 
-    private val updateJsonUrl =
-        "https://raw.githubusercontent.com/a23521745-hub/OTA-Deneyi/refs/heads/main/update.json"
-
-    private val publicKeyPem = """
-        -----BEGIN PUBLIC KEY-----
+        // Veritabanı ve parametreler
+        val db = AppDatabase.getDatabase(applicationContext)
+        val logDao = db.scanLogDao()
+        val updateJsonUrl = "https://example.com/update.json"
+        val publicKeyPem = "        -----BEGIN PUBLIC KEY-----
         MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr2+3opTd+QdzzKJzJBUH
         TTNYuPoZ+yp3YA9VHpfoBnE8XNUS4SWCMpFwKIzjPiB4TAjGtUa+85HFouArAdM3
         bK+NcX95MM+2nvKTa4HTUM6/bc30nm6uHoyEfNBbjvDOah+Nv7lsP9vp2MCWSM5v
@@ -33,46 +32,16 @@ class MainActivity : ComponentActivity() {
         1xBfLDiCDc7WzGrT1oncqUmpe4NU9C6cnJHCO7bvSDo2qKB/PAdfPY+scmdyBb1O
         974gICpfLgju8Z5nHDnR9Fu1LtJKz462Zg7NT/SPFcvepf5PpeKHzwGCZtJn5b1J
         3l3Pf2kLPrjtmFEeWQiVBkkCAwEAAQ==
-        -----END PUBLIC KEY-----
-    """.trimIndent()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        val logDao = AppDatabase.getDatabase(applicationContext).scanLogDao()
+        -----END PUBLIC KEY-----"
 
         setContent {
             OtaDashboardTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    MainScreen(
-                        updateJsonUrl = updateJsonUrl,
-                        publicKeyPem = publicKeyPem,
-                        logDao = logDao
-                    )
-                }
+                MainScreen(
+                    updateJsonUrl = updateJsonUrl,
+                    publicKeyPem = publicKeyPem,
+                    logDao = logDao
+                )
             }
         }
     }
-}
-
-@Composable
-fun OtaDashboardTheme(content: @Composable () -> Unit) {
-    val darkColors = darkColorScheme(
-        primary = Color(0xFF0A84FF),
-        surface = Color(0xFF1C1C1E),
-        surfaceVariant = Color(0xFF2C2C2E),
-        background = Color(0xFF0F0F11),
-        onPrimary = Color.White,
-        onSurface = Color(0xFFF2F2F7),
-        onSurfaceVariant = Color(0xFF8E8E93)
-    )
-
-    MaterialTheme(
-        colorScheme = darkColors,
-        content = content
-    )
 }

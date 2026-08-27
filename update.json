@@ -1,12 +1,12 @@
 {
-  "versionCode": 21,
-  "versionName": "v21",
-  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v21/OTA-Deneyi.apk",
-  "signature": "LiALjQrjSK6ItZfJED83xDFYsFo/ZUDTt33+0NoYVwkIxyuiqb+SLF7q8ydJ5zNhAEKbud2CtRKK46Lj5yFn3jYpvbVqYzfe6xdMhF2ORJuJdKv6/QVYksbuiCcvjqvnpwam5OwipSY3ahRknTGjA+8K43Hmca/VgQKZaX4lUKtSYHhbtFXkAprZ3/pb42Dm7L5Vi++rGDAmZkqDOGkE/w7R6MCTYyEAL3X4vwfDQ8ZIzTX1H/yDBsEQAOqMdbr9pKq6d7/HTitOyhYGURV4FYsq8ng9txriWnpE9FfWcwXcXi/+XxsBEH0F1g857/kFpVmGPFgIyNvUZZZiHhIkcaShsvTpYFiIy7GlR+Gl0cLWI50So/DPirppjNOSM3CodmVSCvF20l8wrGCYwCQNeqBA86yEryGeJTcfxjBu7FP+Qgdey7Q7hk5eG5O+0n6PEnbzOAMPhboznyqT+d6Ehs8uBOXJrJq65n+80GyqpxMyDUSSxarKmLsB2A+IBUah6i2uWG+CJ1wl88NPapJTyGTtWNt0lR+BYzWUGylK5SVBbHdgbqSUGiTcqVaGoy8TZKdapjdL6KYaCYquadEXCUB+AZwb0Q/aQuyw5t4aE/i02dFQpPT5Pv8fjamHcKKc4T3nD81ZBZB8MT1dD28MqynvgW4udU6GSmlZvyTACOQ=",
-  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v21/public_key.pem",
+  "versionCode": 22,
+  "versionName": "v22",
+  "apkUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v22/OTA-Deneyi.apk",
+  "signature": "S+83QEODksdIod7+Aq2eNi2BKiUcxPOh/cTmeoShZZrRAsC3mZ/MYvlOQlU55obaFMRHIZXDPIV70eMPCTczOvolXnDXvx2wDsn1nCCdSwoXB5wZxIZKJrz0riVWfG8EnsVwq/6vmQ0BwTnzngt53L6nvaqBDeCGAyfCCwtU0ckqJh53JSwwqVXZx/QBcw1qfxZ3Kx+UkM/E+01EsyKn4b24fpvbF4YBuQGeEU7nW6aLcjFQQUXbE92a16r3BVhfN6ubzHR1VtMiSTWc5XSYH+dQY3jkBfNMdqfOWrYKdUDBvZopKlrtpw6tSuo2AKlncJV06eF1slDCexM6ndbb+NANoXmU6lTHMvK4Bk7rfMrdPZrArKD0PRhQKfGfWW4GGgX+im/CXkOayYhC8iw3PDKL/86I5iYvyUezbUGJOr/XB6Hko94NBu+UxJFXRNXLe5laMgOFENqkMiZbuR1qBoqBDAK8h8rqD9JFF5XTOB/WTe5BOTs8IH9ABhe9SAXx0YhXKnAN+h+uK3NJ0m1mG24CrgFW5qeF6wSoX4WsAuGc8E7e1sG5Q7JFolouGbP4m2rdONNV/Ij+/HDzWKMV5PlzNsWg3wHvc4dfk5Nb/8VyXnzeJ8AXTwirEQBXNZCzDeKOO0H+wifNmTZVbTF0un3UmKKNNriiwOV6xB1qUjQ=",
+  "publicKeyUrl": "https://github.com/a23521745-hub/OTA-Deneyi/releases/download/v22/public_key.pem",
   "signatureAlgorithm": "RSA-4096 SHA256",
-  "changelog": "Otomatik Build #102 - OTA Update v21",
-  "releaseDate": "2026-08-26T21:51:35Z",
+  "changelog": "Otomatik Build #103 - OTA Update v22",
+  "releaseDate": "2026-08-27T08:49:30Z",
   "size": "14M",
-  "sha256": "041d208536b5f6975481e736ed75605cc660366797555c948bc1f8a2fe3b6dd3"
+  "sha256": "fab93f34158da1ed02e25d9575830b86554aec8e68249c486a922cf42df58638"
 }
